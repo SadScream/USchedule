@@ -24,7 +24,10 @@ class Document:
 
 	def content_searcher(self, soup):
 		content = soup.find("div", id="content")
-		return "https://www.s-vfu.ru"+str(content.find_all("a")[0].get('href'))
+		for a in content.find_all("a"):
+			print(a.text)
+			if "Расписание ИМИ" in a.text:
+				return "https://www.s-vfu.ru"+a.get('href')
 
 	def get_document(self, url):
 		r = requests.get(url, stream=True)
@@ -75,6 +78,7 @@ class ParseDocument(Document):
 				if sheet.cell_value(row,0).lower() in d:
 					days.append(sheet.cell_value(row,0).lower())
 
+			t = sheet.cell_value(row,1).strip()
 			v = sheet.cell_value(row,column)
 			k = ""
 
@@ -118,21 +122,30 @@ class ParseDocument(Document):
 			k = re.sub(r' +', ' ', str(k)).strip().replace("\n", " ")
 
 			if v == "":
-				tbl[days[-1].title()].append("")
+				tbl[days[-1].title()].append(f"{t} -" if len(t) else "-")
 				continue
 			elif "ф и з и ч" in v.lower(): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
 				v = "Физ. культура"
-				tbl[days[-1].title()].append(v)
+				tbl[days[-1].title()].append(f"{t} {v}")
 				continue
 			elif "и с т о" in v.lower():
 				if "яковлев" in v.lower():
 					v = "История Яковлел А.И."
-					tbl[days[-1].title()].append(f"{v}   Ауд. {k}")
+					tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k}")
 					continue
 
-			tbl[days[-1].title()].append(f"{v}   Ауд. {k}")
+			tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k}")
 
-		with open("test.json", "w+", encoding="utf-8") as file:
+		with open("table.txt", "w", encoding='utf-8') as file:
+			for k, v in tbl.items():
+				file.write(f"{k}:\n")	
+				for i, item in enumerate(v):
+					if i == len(v)-1:
+						file.write(f"\t{item}\n\n")
+					else:
+						file.write(f"\t{item}\n")
+
+		with open("table.json", "w+", encoding="utf-8") as file:
 			file.write(json.dumps(tbl, ensure_ascii=False, indent=4))
 
 
