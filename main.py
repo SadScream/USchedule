@@ -48,17 +48,18 @@ class ParseDocument(Document):
 
 	def open_excel(self):
 		rb = xlrd.open_workbook(self.file, formatting_info=True)
-		sheet = rb.sheet_by_name("1 курс_ИТ")
-		column=14
+		sheet_name = "1 курс_ИТ"
+		sheet = rb.sheet_by_name(sheet_name)
+		column=14 # дефолтный номер колонны(ивт-19-3) для случая, если будет неправлено указана группа
 		table = []
 
 		for col in range(sheet.ncols):
-			if "ИВТ-19-3" in sheet.cell_value(2,col):
+			if "ивт-19-3" in sheet.cell_value(2,col).lower():
 				column = col # запоминаем местоположение столбца нашей группы
 
 		days = []
 		d = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
-		tbl = {'Понедельник': [], 'Вторник': [], 'Среда': [], 'Четверг': [], 'Пятница': [], 'Суббота': []}
+		tbl = {'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}', 'Понедельник': [], 'Вторник': [], 'Среда': [], 'Четверг': [], 'Пятница': [], 'Суббота': []}
 
 		for row in range(3,sheet.nrows):
 			'''
@@ -78,9 +79,10 @@ class ParseDocument(Document):
 				if sheet.cell_value(row,0).lower() in d:
 					days.append(sheet.cell_value(row,0).lower())
 
-			t = sheet.cell_value(row,1).strip()
-			v = sheet.cell_value(row,column)
-			k = ""
+			t = sheet.cell_value(row,1).strip() # время
+			v = sheet.cell_value(row,column) # предмет
+			f = sheet.cell_value(row,column+1 ) # тип занятия(лек., пр., лаб.)
+			k = "" # аудитория
 
 			for i in range(2, column-1): # ищем номер аудитории
 				p = sheet.cell_value(row,column+i)
@@ -131,19 +133,25 @@ class ParseDocument(Document):
 			elif "и с т о" in v.lower():
 				if "яковлев" in v.lower():
 					v = "История Яковлел А.И."
-					tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k}")
+					tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k} {f}")
 					continue
 
-			tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k}")
+			tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k} {f}")
 
 		with open("table.txt", "w", encoding='utf-8') as file:
 			for k, v in tbl.items():
-				file.write(f"{k}:\n")	
-				for i, item in enumerate(v):
-					if i == len(v)-1:
-						file.write(f"\t{item}\n\n")
-					else:
-						file.write(f"\t{item}\n")
+				if "Расписание" in k:
+					file.write(f"Расписание для: {v}\n\n")
+					break
+
+			for k, v in tbl.items():
+				if "Расписание" not in k:
+					file.write(f"{k}:\n")	
+					for i, item in enumerate(v):
+						if i == len(v)-1:
+							file.write(f"\t{item}\n\n")
+						else:
+							file.write(f"\t{item}\n")
 
 		with open("table.json", "w+", encoding="utf-8") as file:
 			file.write(json.dumps(tbl, ensure_ascii=False, indent=4))
