@@ -77,8 +77,9 @@ class ParseDocument(Document):
 			'''
 
 			if len(sheet.cell_value(row,0)):
-				if sheet.cell_value(row,0).lower() in d:
-					days.append(sheet.cell_value(row,0).lower())
+				for item in d:
+					if item in sheet.cell_value(row,0).lower():
+						days.append(item)
 
 			t = sheet.cell_value(row,1).strip().replace("--", "-") # время
 			v = sheet.cell_value(row,column) # предмет
