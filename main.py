@@ -12,7 +12,7 @@ class Document:
 
 	def __init__(self):
 		self.url = url
-		soup = self.open_soup() 
+		soup = self.open_soup()
 		content = self.content_searcher(soup)
 		print(content)
 		self.file = self.get_document(content)
