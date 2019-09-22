@@ -48,13 +48,14 @@ class ParseDocument(Document):
 
 	def open_excel(self):
 		rb = xlrd.open_workbook(self.file, formatting_info=True)
-		sheet_name = "1 курс_ИТ"
+		sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
+		group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
+		column=14 # дефолтный номер колонны(ивт-19-3) для случая, если будет неправильно указана группа
 		sheet = rb.sheet_by_name(sheet_name)
-		column=14 # дефолтный номер колонны(ивт-19-3) для случая, если будет неправлено указана группа
 		table = []
 
 		for col in range(sheet.ncols):
-			if "ивт-19-3" in sheet.cell_value(2,col).lower():
+			if group in sheet.cell_value(2,col).lower():
 				column = col # запоминаем местоположение столбца нашей группы
 
 		days = []
@@ -79,7 +80,7 @@ class ParseDocument(Document):
 				if sheet.cell_value(row,0).lower() in d:
 					days.append(sheet.cell_value(row,0).lower())
 
-			t = sheet.cell_value(row,1).strip() # время
+			t = sheet.cell_value(row,1).strip().replace("--", "-") # время
 			v = sheet.cell_value(row,column) # предмет
 			f = sheet.cell_value(row,column+1 ) # тип занятия(лек., пр., лаб.)
 			k = "" # аудитория
