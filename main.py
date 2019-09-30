@@ -3,6 +3,7 @@ import json
 import requests
 import bs4 as bs
 import xlrd
+import datetime
 
 
 url = "https://www.s-vfu.ru/universitet/rukovodstvo-i-struktura/instituty/imi/uchebnyy-protsess/"
@@ -47,6 +48,16 @@ class ParseDocument(Document):
 		self.open_excel()
 
 	def open_excel(self):
+		now = datetime.datetime.now()
+		date = now.strftime("%d-%m-%Y")
+		week_dig = int(now.strftime("%U")) # порядковый номер недели для проверки четности
+		week_t = None
+
+		if week_dig % 2 == 0:
+			week_t = "Четная"
+		else:
+			week_t = "Нечетная"
+
 		rb = xlrd.open_workbook(self.file, formatting_info=True)
 		sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
 		group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
@@ -60,7 +71,7 @@ class ParseDocument(Document):
 
 		days = []
 		d = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
-		tbl = {'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}', 'Понедельник': [], 'Вторник': [], 'Среда': [], 'Четверг': [], 'Пятница': [], 'Суббота': []}
+		tbl = {f'{date}. Неделя': f'{week_t}', 'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}', 'Понедельник': [], 'Вторник': [], 'Среда': [], 'Четверг': [], 'Пятница': [], 'Суббота': []}
 
 		for row in range(3,sheet.nrows):
 			'''
@@ -142,12 +153,10 @@ class ParseDocument(Document):
 
 		with open("table.txt", "w", encoding='utf-8') as file:
 			for k, v in tbl.items():
-				if "Расписание" in k:
-					file.write(f"Расписание для: {v}\n\n")
-					break
+				if any(_ in k for _ in ["Расписание", "Неделя"]):
+					file.write(f"{k}: {v}\n\n")
 
-			for k, v in tbl.items():
-				if "Расписание" not in k:
+				else:
 					file.write(f"{k}:\n")	
 					for i, item in enumerate(v):
 						if i == len(v)-1:
