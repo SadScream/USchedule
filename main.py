@@ -50,7 +50,7 @@ class ParseDocument(Document):
 	def open_excel(self):
 		now = datetime.datetime.now()
 		date = now.strftime("%d-%m-%Y")
-		week_dig = int(now.strftime("%U")) # порядковый номер недели для проверки четности
+		week_dig = 1+int(now.strftime("%U")) # порядковый номер недели для проверки четности
 		week_t = None
 
 		if week_dig % 2 == 0:
