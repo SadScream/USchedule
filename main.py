@@ -58,10 +58,11 @@ class ParseDocument(Document):
 		else:
 			week_t = "Нечетная"
 
-		rb = xlrd.open_workbook(self.file, formatting_info=True)
 		sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
 		group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
-		column=14 # дефолтный номер колонны(ивт-19-3) для случая, если будет неправильно указана группа
+		column=14 # дефолт
+
+		rb = xlrd.open_workbook(self.file, formatting_info=True)
 		sheet = rb.sheet_by_name(sheet_name)
 		table = []
 
@@ -71,9 +72,18 @@ class ParseDocument(Document):
 
 		days = []
 		d = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
-		tbl = {f'{date}. Неделя': f'{week_t}', 'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}', 'Понедельник': [], 'Вторник': [], 'Среда': [], 'Четверг': [], 'Пятница': [], 'Суббота': []}
+		tbl = {
+			f'{date}. Неделя': f'{week_t}',
+			'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}',
+			'Понедельник': [],
+			'Вторник': [],
+			'Среда': [],
+			'Четверг': [],
+			'Пятница': [],
+			'Суббота': []
+		}
 
-		for row in range(3,sheet.nrows):
+		for row in range(3, sheet.nrows):
 			'''
 			первая строка каждого нового дня содержит имя недели, а остальные строки - пусты
 			например
@@ -92,25 +102,24 @@ class ParseDocument(Document):
 					if item in sheet.cell_value(row,0).lower():
 						days.append(item)
 
-			t = sheet.cell_value(row,1).strip().replace("--", "-") # время
-			v = sheet.cell_value(row,column) # предмет
-			f = sheet.cell_value(row,column+1 ) # тип занятия(лек., пр., лаб.)
-			k = "" # аудитория
+			time = sheet.cell_value(row,1).strip().replace("--", "-") # время
+			subject = sheet.cell_value(row,column) # предмет
+			kind = sheet.cell_value(row,column+1 ) # тип занятия(лек., пр., лаб.)
+			audience = "" # аудитория
 
 			for i in range(2, column-1): # ищем номер аудитории
 				p = sheet.cell_value(row,column+i)
 
 				if isinstance(p, float):
-					k = str(p).split(".")[0]
+					audience = str(p).split(".")[0]
 					break
 				elif "".join(str(p).split(" ")).isdigit():
-					k = p
+					audience = p
 					break
 				elif not "".join(str(p).split(" ")).isdigit():
 					continue
 
-
-			if not(len(v)):
+			if not(len(subject)):
 				'''
 				иногда предмет охватывает несколько ячеек и его названия нет в колонке column
 				тут мы вроде ищем его название, хотя я сам забыл уже и вообще спать хочу
@@ -118,43 +127,45 @@ class ParseDocument(Document):
 				if len(sheet.cell_value(row,column+1)):
 					for i in range(1, sheet.ncols):
 						if len(sheet.cell_value(row,column-i)):
-							v = sheet.cell_value(row,column-i)
+							subject = sheet.cell_value(row,column-i)
 							break
 
-				elif not isinstance(sheet.cell_value(row,column-1), float):
+				elif not any(_.split('.')[0].isdigit() for _ in str(sheet.cell_value(row,column-1)).split(" ")):
 					for i in range(1, column-1):
-						if not isinstance(sheet.cell_value(row,column-i), float):
-							if not "".join(str(sheet.cell_value(row,column-i)).split(" ")).isdigit():
-								if len(sheet.cell_value(row,column-i)):
-									v = sheet.cell_value(row,column-i)
+						iCell = sheet.cell_value(row,column-i) 
+
+						if not isinstance(iCell, float):
+							if not "".join(str(iCell).split(" ")).isdigit():
+								if len(iCell):
+									subject = iCell
 									break
 							else:
 								break
 						else:
 							break
 
-			v = re.sub(r' +', ' ', str(v)).strip().replace("\n", " ") # убираем дебильные пробелы
-			k = re.sub(r' +', ' ', str(k)).strip().replace("\n", " ")
+			subject = re.sub(r' +', ' ', str(subject)).strip().replace("\n", " ") # убираем дебильные пробелы
+			audience = re.sub(r' +', ' ', str(audience)).strip().replace("\n", " ")
 
-			if v == "":
-				tbl[days[-1].title()].append(f"{t} -" if len(t) else "-")
+			if subject == "":
+				tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
 				continue
-			elif "ф и з и ч" in v.lower(): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
-				v = "Физ. культура"
-				tbl[days[-1].title()].append(f"{t} {v}")
+			elif "физич" in ''.join(subject.lower().split(' ')): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
+				subject = "Физ. культура"
+				tbl[days[-1].title()].append(f"{time} {subject}")
 				continue
-			elif "и с т о" in v.lower():
-				if "яковлев" in v.lower():
-					v = "История Яковлел А.И."
-					tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k} {f}")
+			elif "исто" in ''.join(subject.lower().split(' ')):
+				if "яковлев" in subject.lower():
+					subject = "История Яковлел А.И."
+					tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 					continue
 
-			tbl[days[-1].title()].append(f"{t} {v}   Ауд. {k} {f}")
+			tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 
 		with open("table.txt", "w", encoding='utf-8') as file:
 			for k, v in tbl.items():
 				if any(_ in k for _ in ["Расписание", "Неделя"]):
-					file.write(f"{k}: {v}\n\n")
+					file.write(f"{audience}: {subject}\n\n")
 
 				else:
 					file.write(f"{k}:\n")	
