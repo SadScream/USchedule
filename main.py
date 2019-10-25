@@ -150,10 +150,12 @@ class ParseDocument(Document):
 			if subject == "":
 				tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
 				continue
+
 			elif "физич" in ''.join(subject.lower().split(' ')): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
 				subject = "Физ. культура"
 				tbl[days[-1].title()].append(f"{time} {subject}")
 				continue
+
 			elif "исто" in ''.join(subject.lower().split(' ')):
 				if "яковлев" in subject.lower():
 					subject = "История Яковлел А.И."
@@ -162,18 +164,21 @@ class ParseDocument(Document):
 
 			tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 
+		j = 0
 		with open("table.txt", "w", encoding='utf-8') as file:
 			for k, v in tbl.items():
-				if any(_ in k for _ in ["Расписание", "Неделя"]):
-					file.write(f"{audience}: {subject}\n\n")
-
-				else:
+				if j > 1:
 					file.write(f"{k}:\n")	
 					for i, item in enumerate(v):
 						if i == len(v)-1:
 							file.write(f"\t{item}\n\n")
 						else:
 							file.write(f"\t{item}\n")
+				elif j == 0:
+					file.write(f"{k}: {v}\n")
+				elif j == 1:
+					file.write(f"{k}: {v.replace('_', ' ')}\n\n")
+				j+=1
 
 		with open("table.json", "w+", encoding="utf-8") as file:
 			file.write(json.dumps(tbl, ensure_ascii=False, indent=4))
