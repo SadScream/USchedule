@@ -162,6 +162,16 @@ class ParseDocument(Document):
 					tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 					continue
 
+			elif "дв2" in subject.lower():
+				subject = "Якутский язык"
+				tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
+				continue
+
+			elif any(_ in subject.lower() for _ in ['дв', 'культура']):
+				subject = "Культура и традиции"
+				tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
+				continue
+
 			tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 
 		j = 0
