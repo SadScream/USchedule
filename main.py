@@ -1,9 +1,17 @@
-import re
-import json
-import requests
-import bs4 as bs
-import xlrd
-import datetime
+import sys
+from json import dumps
+from requests import get
+from datetime import datetime
+from bs4 import BeautifulSoup
+from xlrd import open_workbook
+from re import sub, findall, split
+
+
+'''
+
+todo: import asyncio
+
+'''
 
 
 url = "https://www.s-vfu.ru/universitet/rukovodstvo-i-struktura/instituty/imi/uchebnyy-protsess/"
@@ -13,14 +21,25 @@ class Document:
 
 	def __init__(self):
 		self.url = url
+		self.get_group()
 		soup = self.open_soup()
 		content = self.content_searcher(soup)
 		print(content)
 		self.file = self.get_document(content)
 
+	def get_group(self):
+		'''
+		сделать так, чтобы через параметры можно было задавать лист, группу и по надобности дефолтную колонну 
+		'''
+
+		args = sys.argv[1:]
+		self.sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
+		self.group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
+		self.column=14 # дефолт
+
 	def open_soup(self):
-		response = requests.get(self.url).content
-		soup = bs.BeautifulSoup(response, 'lxml')
+		response = get(self.url).content
+		soup = BeautifulSoup(response, 'lxml')
 		return soup
 
 	def content_searcher(self, soup):
@@ -31,7 +50,7 @@ class Document:
 				return "https://www.s-vfu.ru"+a.get('href')
 
 	def get_document(self, url):
-		r = requests.get(url, stream=True)
+		r = get(url, stream=True)
 		path = "table.xls"
 
 		with open(path, "wb") as out:
@@ -48,7 +67,7 @@ class ParseDocument(Document):
 		self.open_excel()
 
 	def open_excel(self):
-		now = datetime.datetime.now()
+		now = datetime.now()
 		date = now.strftime("%d-%m-%Y")
 		week_dig = 1+int(now.strftime("%U")) # порядковый номер недели для проверки четности
 		week_t = None
@@ -58,11 +77,11 @@ class ParseDocument(Document):
 		else:
 			week_t = "Нечетная"
 
-		sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
-		group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
-		column=14 # дефолт
+		sheet_name = self.sheet_name
+		group = self.group
+		column= self.column
 
-		rb = xlrd.open_workbook(self.file, formatting_info=True)
+		rb = open_workbook(self.file, formatting_info=True)
 		sheet = rb.sheet_by_name(sheet_name)
 		table = []
 
@@ -144,8 +163,8 @@ class ParseDocument(Document):
 						else:
 							break
 
-			subject = re.sub(r' +', ' ', str(subject)).strip().replace("\n", " ") # убираем дебильные пробелы
-			audience = re.sub(r' +', ' ', str(audience)).strip().replace("\n", " ")
+			subject = sub(r' +', ' ', str(subject)).strip().replace("\n", " ") # убираем дебильные пробелы
+			audience = sub(r' +', ' ', str(audience)).strip().replace("\n", " ")
 
 			if subject == "":
 				tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
@@ -185,7 +204,7 @@ class ParseDocument(Document):
 				j+=1
 
 		with open("table.json", "w+", encoding="utf-8") as file:
-			file.write(json.dumps(tbl, ensure_ascii=False, indent=4))
+			file.write(dumps(tbl, ensure_ascii=False, indent=4))
 
 
 
