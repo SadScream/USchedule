@@ -4,7 +4,7 @@ from requests import get
 from datetime import datetime
 from bs4 import BeautifulSoup
 from xlrd import open_workbook
-from re import sub, findall, split
+from re import sub
 
 
 '''
