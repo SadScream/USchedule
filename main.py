@@ -1,20 +1,93 @@
-import sys
 from json import dumps
 from requests import get
 from datetime import datetime
 from bs4 import BeautifulSoup
 from xlrd import open_workbook
 from re import sub
-
-
-'''
-
-todo: import asyncio
-
-'''
+import os
+import json
 
 
 url = "https://www.s-vfu.ru/universitet/rukovodstvo-i-struktura/instituty/imi/uchebnyy-protsess/"
+
+
+class JsonHandler:
+
+	def __init__(self):
+		self.default = {"groups": [
+				"ПИ-19-1", "ПИ-19-2",
+				"ИВТ-19-1", "ИВТ-19-2", "ИВТ-19-3"
+				], 
+				"currentGroup": "ИВТ-19-3"
+				}
+
+		self.generateConfig()
+
+
+	def read(self, field = None):
+		with open("config.json", "r+", encoding="utf-8") as file:
+			data = json.loads(file.read())
+
+		if field is not None and field in data:
+			return data[field]
+		else:
+			return data
+
+
+	def write(self, field, value):
+		data = self.read()
+
+		if field in data:
+
+			if "**default**" in value:
+				data[field] = self.default[field]
+
+			else:
+				if isinstance(data[field], list):
+					if isinstance(value, list):
+						data[field] = value
+					else:
+						data[field].append(value)
+				else:
+					data[field] = value
+
+			with open("config.json", "w", encoding="utf-8") as file:
+				file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+
+	def reset(self, field, value):
+		data = self.read()
+
+		if field in data:
+
+			if "**default**" in value:
+				with open("config_copy.json", "w", encoding="utf-8") as file:
+					file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+				data = self.default
+
+			else:
+				if isinstance(data[field], list):
+					if isinstance(value, list):
+						for value_ in value:
+							if value_ in data[field]:
+								data[field].remove(value_)
+					else:
+						if value in data[field]:
+							data[field].remove(value)
+				else:
+					data[field] = value
+
+			with open("config.json", "w", encoding="utf-8") as file:
+				file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+
+	def generateConfig(self):
+		listDir = os.listdir(os.getcwd())
+
+		if "config.json" not in listDir:	
+			with open("config.json", "w", encoding="utf-8") as file:
+				file.write(json.dumps(self.default, ensure_ascii=False, indent=4))
 
 
 class Document:
@@ -28,13 +101,8 @@ class Document:
 		self.file = self.get_document(content)
 
 	def get_group(self):
-		'''
-		сделать так, чтобы через параметры можно было задавать лист, группу и по надобности дефолтную колонну 
-		'''
-
-		args = sys.argv[1:]
 		self.sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
-		self.group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
+		self.group = config.read("currentGroup") # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
 		self.column=14 # дефолт
 
 	def open_soup(self):
@@ -64,12 +132,15 @@ class ParseDocument(Document):
 
 	def __init__(self):
 		super().__init__()
-		self.open_excel()
+		sheet, week, date = self.open_excel()
+		table = self.generateTable(sheet, week, date)
+		self.file_input(table)
+
 
 	def open_excel(self):
 		now = datetime.now()
 		date = now.strftime("%d-%m-%Y")
-		week_dig = 1+int(now.strftime("%U")) # порядковый номер недели для проверки четности
+		week_dig = 1 + int(now.strftime("%U")) # порядковый номер недели для проверки четности
 		week_t = None
 
 		if week_dig % 2 == 0:
@@ -77,23 +148,22 @@ class ParseDocument(Document):
 		else:
 			week_t = "Нечетная"
 
-		sheet_name = self.sheet_name
-		group = self.group
-		column= self.column
-
 		rb = open_workbook(self.file, formatting_info=True)
-		sheet = rb.sheet_by_name(sheet_name)
-		table = []
+		sheet = rb.sheet_by_name(self.sheet_name)
 
-		for col in range(sheet.ncols):
-			if group in sheet.cell_value(2,col).lower():
-				column = col # запоминаем местоположение столбца нашей группы
+		for column in range(sheet.ncols):
+			if self.group in sheet.cell_value(2, column).lower():
+				self.column = column # запоминаем местоположение столбца нашей группы
 
+		return sheet, week_t, date
+
+
+	def generateTable(self, sheet, week, date):
 		days = []
 		d = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
 		tbl = {
-			f'{date}. Неделя': f'{week_t}',
-			'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}',
+			f'{date}. Неделя': f'{week}',
+			'Расписание для': f'{self.sheet_name} {sheet.cell_value(2, self.column)}',
 			'Понедельник': [],
 			'Вторник': [],
 			'Среда': [],
@@ -116,18 +186,18 @@ class ParseDocument(Document):
 			а если так, то запоминаем его
 			'''
 
-			if len(sheet.cell_value(row,0)):
+			if len(sheet.cell_value(row, 0)):
 				for item in d:
-					if item in sheet.cell_value(row,0).lower():
+					if item in sheet.cell_value(row, 0).lower():
 						days.append(item)
 
-			time = sheet.cell_value(row,1).strip().replace("--", "-") # время
-			subject = sheet.cell_value(row,column) # предмет
-			kind = sheet.cell_value(row,column+1 ) # тип занятия(лек., пр., лаб.)
+			time = sheet.cell_value(row, 1).strip().replace("--", "-") # время
+			subject = sheet.cell_value(row, self.column) # предмет
+			kind = sheet.cell_value(row, self.column+1 ) # тип занятия(лек., пр., лаб.)
 			audience = "" # аудитория
 
-			for i in range(2, column-1): # ищем номер аудитории
-				p = sheet.cell_value(row,column+i)
+			for i in range(2, self.column-1): # ищем номер аудитории
+				p = sheet.cell_value(row, self.column+i)
 
 				if isinstance(p, float):
 					audience = str(p).split(".")[0]
@@ -143,15 +213,15 @@ class ParseDocument(Document):
 				иногда предмет охватывает несколько ячеек и его названия нет в колонке column
 				тут мы вроде ищем его название в соседних ячейках, хотя я сам забыл уже и вообще спать хочу
 				'''
-				if len(sheet.cell_value(row,column+1)):
+				if len(sheet.cell_value(row, self.column+1)):
 					for i in range(1, sheet.ncols):
-						if len(sheet.cell_value(row,column-i)):
-							subject = sheet.cell_value(row,column-i)
+						if len(sheet.cell_value(row, self.column-i)):
+							subject = sheet.cell_value(row, self.column-i)
 							break
 
-				elif not any(_.split('.')[0].isdigit() for _ in str(sheet.cell_value(row,column-1)).split(" ")):
-					for i in range(1, column-1):
-						iCell = sheet.cell_value(row,column-i) 
+				elif not any(_.split('.')[0].isdigit() for _ in str(sheet.cell_value(row, self.column-1)).split(" ")):
+					for i in range(1, self.column-1):
+						iCell = sheet.cell_value(row, self.column-i) 
 
 						if not isinstance(iCell, float):
 							if not "".join(str(iCell).split(" ")).isdigit():
@@ -187,9 +257,12 @@ class ParseDocument(Document):
 
 			tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 
-		j = 0
+		return tbl
+
+
+	def file_input(self, table):
 		with open("table.txt", "w", encoding='utf-8') as file:
-			for k, v in tbl.items():
+			for j, (k, v) in enumerate(table.items()):
 				if j > 1:
 					file.write(f"{k}:\n")	
 					for i, item in enumerate(v):
@@ -203,10 +276,11 @@ class ParseDocument(Document):
 					file.write(f"{k}: {v.replace('_', ' ')}\n\n")
 				j+=1
 
-		with open("table.json", "w+", encoding="utf-8") as file:
-			file.write(dumps(tbl, ensure_ascii=False, indent=4))
+		with open("table.json", "w", encoding="utf-8") as file:
+			file.write(dumps(table, ensure_ascii=False, indent=4))
 
 
 
 if __name__ == '__main__':
+	config = JsonHandler()
 	ParseDocument()
