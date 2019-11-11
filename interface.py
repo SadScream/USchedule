@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from kivy.app import App
-from kivy.uix.button import Button
 from kivy.config import Config
 from kivy.uix.gridlayout import GridLayout
+
 from threading import Thread
 from json import loads
-import time
+from time import sleep
 
 from modules.JsonHandler import JsonHandler
 from modules.DocumentHandler import Document
@@ -20,15 +20,15 @@ class Container(GridLayout):
 	
 	def generateTable(self):
 
-		thread = Thread(target=Document())
+		thread = Thread(target=Document)
 		thread.start()
 
-		i = 0
-		while thread.is_alive():
-			i += 1
-			time.sleep(i)
-			if i > 20:
+		for i in range(1, 10):
+			if not thread.is_alive():
 				break
+			if thread.is_alive() and i == 10:
+				break # exception
+			sleep(i)
 
 		table = {}
 		self.rst.text = ''
