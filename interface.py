@@ -1,26 +1,82 @@
+# -*- coding: utf-8 -*-
+
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.config import Config
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
+from threading import Thread
+from json import loads
+import time
 
-Config.set("graphics", "resizable", "0")
-Config.set("graphics", "width", "640")
-Config.set("graphics", "height", "480")
+from modules.JsonHandler import JsonHandler
+from modules.DocumentHandler import Document
+
+Config.set("graphics", "width", "360") # ширина
+Config.set("graphics", "height", "640") # высота
+
+config = JsonHandler()
+
+class Container(GridLayout):
+	
+	def generateTable(self):
+
+		thread = Thread(target=Document())
+		thread.start()
+
+		i = 0
+		while thread.is_alive():
+			i += 1
+			time.sleep(i)
+			if i > 20:
+				break
+
+		table = {}
+		self.rst.text = ''
+
+		with open("table.json", "r", encoding='utf-8') as file:
+			table = loads(file.read())
+
+		for j, (k, v) in enumerate(table.items()):
+			if j > 1:
+				self.rst.text += f"\n\n====\n\n**{k}**:\n\n"
+
+				for i, item in enumerate(v):
+					# if i == len(v)-1:
+					self.rst.text += f"{item}\n\n"
+					# else:
+					# 	self.rst.text += f"\n{item}\n"
+			elif j == 0:
+				self.rst.text += f"{k}: {v}\n\n"
+			elif j == 1:
+				self.rst.text += f"{k}: {v.replace('_', ' ')}\n"
 
 
-class MyApp(App):
+	def groupChanged(self):
+		config.write("currentGroup", self.groupSpinner.text)
+
+	def courseChanged(self):
+		config.write("currentSheet", self.courseSpinner.text)
+
+
+class ScheduleApp(App):
 
 	def build(self):
+		container = Container()
+		courses = config.read("courses")
+		groups = config.read("groups")
+		currentCourse = config.read("currentSheet")
+		currentGroup = config.read("currentGroup")
+		container.courseSpinner.values = tuple(courses)
+		container.groupSpinner.values = tuple(groups)
 
-		f1 = FloatLayout(size = (300, 300))
+		if not len(currentCourse) and not len(currentGroup):
+			container.courseSpinner.text = courses[0]
+			container.groupSpinner.text = groups[0]	
+		else:
+			container.courseSpinner.text = currentCourse
+			container.groupSpinner.text = currentGroup			
 
-		f1.add_widget(Button(text = "кнопка", 
-			background_color = [1, 0, 0, 1], 
-			background_normal = "", 
-			size_hint = (.5, .25), 
-			pos = (10, 10)))
-
-		return f1
+		return container
 
 if __name__ == '__main__':
-	MyApp().run()
+	ScheduleApp().run()

@@ -1,0 +1,36 @@
+
+
+<Container>:
+	rows: 2
+
+	rst: rst
+	reloadBtn: reloadBtn
+	courseSpinner: courseSpinner
+	groupSpinner: groupSpinner
+
+	GridLayout:
+		cols: 3
+		size_hint_y: 0.06
+
+		Spinner:
+			id: courseSpinner
+			value: u"Курс"
+			size: (150, 44)
+			on_text: root.courseChanged()
+
+		Spinner:
+			id: groupSpinner
+			value: u"Группа"
+			size: (150, 44)
+			on_text: root.groupChanged()
+
+		Button:
+			id: reloadBtn
+			text: "Update"
+			on_press: root.generateTable()
+
+	BoxLayout:
+		RstDocument:
+			id: rst
+			text: ""
+			base_font_size: '25sp'
