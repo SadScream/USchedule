@@ -23,10 +23,8 @@ class Parser:
 
 		if self.content == False:
 			self.updated = True
-			print("Up to date!")
 			self.file = os.path.join(os.getcwd(), "table.xls" if "table.xls" in os.listdir() else "table.xlsx")
 		else:
-			print(self.content)
 			self.file = self.getContent(self.content)
 
 
@@ -37,7 +35,6 @@ class Parser:
 
 		content = soup.find("div", id="content")
 		for a in content.find_all("a"):
-			print(a.text)
 			if "Расписание ИМИ" in a.text:
 				link = "https://www.s-vfu.ru"+a.get('href')
 

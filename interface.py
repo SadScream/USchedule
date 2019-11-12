@@ -45,7 +45,8 @@ class Container(GridLayout):
 			elif j == 0:
 				self.rst.text += f"{k}: {v}\n\n"
 			elif j == 1:
-				self.rst.text += f"{k}: {v.replace('_', ' ')}\n"
+				continue
+				# self.rst.text += f"{k}: {v.replace('_', ' ')}\n"
 
 		self.courseSpinner.disabled = False
 		self.groupSpinner.disabled = False
