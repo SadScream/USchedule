@@ -73,8 +73,12 @@ class ScheduleApp(App):
 		groups = config.read("groups")
 		currentCourse = config.read("currentSheet")
 		currentGroup = config.read("currentGroup")
+
+		container.courseSpinner.value = "Курс"
+		container.groupSpinner.value = "Группа"
 		container.courseSpinner.values = tuple(courses)
 		container.groupSpinner.values = tuple(groups)
+
 		container.reloadBtn.bind(on_release=container.pressed)
 		container.rst.text = config.read("schedule")
 
