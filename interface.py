@@ -53,6 +53,10 @@ class Container(GridLayout):
 		instance.text = "Update"
 
 
+	def scheduleChanged(self):
+		config.write("schedule", self.rst.text)
+
+
 	def groupChanged(self):
 		config.write("currentGroup", self.groupSpinner.text)
 
@@ -72,6 +76,7 @@ class ScheduleApp(App):
 		container.courseSpinner.values = tuple(courses)
 		container.groupSpinner.values = tuple(groups)
 		container.reloadBtn.bind(on_release=container.pressed)
+		container.rst.text = config.read("schedule")
 
 		if not len(currentCourse) and not len(currentGroup):
 			container.courseSpinner.text = courses[0]

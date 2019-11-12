@@ -8,14 +8,16 @@ default = {
         "ПИ-19-2",
         "ИВТ-19-1",
         "ИВТ-19-2",
-        "ИВТ-19-3"
+        "ИВТ-19-3",
+        "ИТСС-19"
     ],
     "courses": [
     	"1 курс_ИТ"
     ],
     "currentGroup": "",
     "currentSheet": "",
-    "lastSchedule": ""
+    "lastSchedule": "",
+    "schedule": ""
 }
 
 
