@@ -17,18 +17,17 @@ Config.set("graphics", "height", "640") # высота
 config = JsonHandler()
 
 class Container(GridLayout):
-	
-	def generateTable(self):
 
-		thread = Thread(target=Document)
+	def pressed(self, instance):
+		self.courseSpinner.disabled = True
+		self.groupSpinner.disabled = True
+		instance.disabled = True
+		instance.text = "Wait"
+		thread = Thread(target=self.generateTable, args=(instance,))
 		thread.start()
 
-		for i in range(1, 10):
-			if not thread.is_alive():
-				break
-			if thread.is_alive() and i == 10:
-				break # exception
-			sleep(i)
+	def generateTable(self, instance=None):
+		Document()
 
 		table = {}
 		self.rst.text = ''
@@ -41,18 +40,22 @@ class Container(GridLayout):
 				self.rst.text += f"\n\n====\n\n**{k}**:\n\n"
 
 				for i, item in enumerate(v):
-					# if i == len(v)-1:
 					self.rst.text += f"{item}\n\n"
-					# else:
-					# 	self.rst.text += f"\n{item}\n"
+
 			elif j == 0:
 				self.rst.text += f"{k}: {v}\n\n"
 			elif j == 1:
 				self.rst.text += f"{k}: {v.replace('_', ' ')}\n"
 
+		self.courseSpinner.disabled = False
+		self.groupSpinner.disabled = False
+		instance.disabled = False
+		instance.text = "Update"
+
 
 	def groupChanged(self):
 		config.write("currentGroup", self.groupSpinner.text)
+
 
 	def courseChanged(self):
 		config.write("currentSheet", self.courseSpinner.text)
@@ -68,6 +71,7 @@ class ScheduleApp(App):
 		currentGroup = config.read("currentGroup")
 		container.courseSpinner.values = tuple(courses)
 		container.groupSpinner.values = tuple(groups)
+		container.reloadBtn.bind(on_release=container.pressed)
 
 		if not len(currentCourse) and not len(currentGroup):
 			container.courseSpinner.text = courses[0]

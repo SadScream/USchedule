@@ -14,20 +14,20 @@
 
 		Spinner:
 			id: courseSpinner
-			value: u"Курс"
+			value: "Курс"
 			size: (150, 44)
 			on_text: root.courseChanged()
 
 		Spinner:
 			id: groupSpinner
-			value: u"Группа"
+			value: "Группа"
 			size: (150, 44)
 			on_text: root.groupChanged()
 
 		Button:
 			id: reloadBtn
 			text: "Update"
-			on_press: root.generateTable()
+			disabled: False
 
 	BoxLayout:
 		RstDocument:
