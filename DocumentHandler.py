@@ -6,7 +6,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from xlrd import open_workbook
 from re import sub
-from .JsonHandler import JsonHandler
+from JsonHandler import JsonHandler
 import os
 
 

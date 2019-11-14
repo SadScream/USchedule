@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+__version__ = "1.0"
 
 from kivy.app import App
 from kivy.config import Config
@@ -8,11 +8,11 @@ from threading import Thread
 from json import loads
 from time import sleep
 
-from modules.JsonHandler import JsonHandler
-from modules.DocumentHandler import Document
+from JsonHandler import JsonHandler
+from DocumentHandler import Document
 
-Config.set("graphics", "width", "360") # ширина
-Config.set("graphics", "height", "640") # высота
+Config.set("graphics", "width", "360")
+Config.set("graphics", "height", "640")
 
 config = JsonHandler()
 
