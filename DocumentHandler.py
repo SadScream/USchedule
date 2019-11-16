@@ -80,25 +80,31 @@ class Document(Parser):
 	def get_data(self):
 		self.sheet_name = config.read("currentCourse") # наименование рабочей страницы строго как в эксель файле
 		self.group = config.read("currentGroup") # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
-		self.column=14 # дефолт
-		self.last_column=0
+		self.last_column = 0
+		self.first_row = 0
 
 
 	def open(self):
 		rb = open_workbook(self.file, formatting_info=True)
 		sheet = rb.sheet_by_name(self.sheet_name)
 
-		for column in range(sheet.ncols):
-			if self.group.lower() in sheet.cell_value(2, column).lower():
-				self.column = column # запоминаем местоположение столбца нашей группы
-			elif "уч. года" in sheet.cell_value(2, column).lower():
-				self.last_column = column
-				break
-
 		for row in range(sheet.nrows):
+			if "понедельник" in sheet.cell_value(row, 0).lower():
+				self.first_row = row-1
 			if "суббота" in sheet.cell_value(row, 0).lower():
 				self.last_row = row+6
 				break
+
+		for column in range(sheet.ncols):
+			if self.group.lower() in str(sheet.cell_value(self.first_row, column)).lower():
+				self.column = column # запоминаем местоположение столбца нашей группы
+			else:
+				if "уч. года" in str(sheet.cell_value(self.first_row, column)).lower():
+					self.last_column = column
+					break
+				elif "уч. года" in str(sheet.cell_value(self.first_row+1, column)).lower():
+					self.last_column = column
+					break
 
 		return sheet
 
@@ -106,10 +112,10 @@ class Document(Parser):
 	def generateTable(self, sheet, week, date):
 		days = []
 		DAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
-		
+
 		self.tbl = {
 			f'{date}. Неделя': f'{week}',
-			'Расписание для': f'{self.sheet_name} {sheet.cell_value(2, self.column)}',
+			'Расписание для': f'{self.sheet_name} {sheet.cell_value(self.first_row, self.column)}',
 			'Понедельник': [],
 			'Вторник': [],
 			'Среда': [],
@@ -118,7 +124,7 @@ class Document(Parser):
 			'Суббота': []
 		}
 
-		for row in range(3, self.last_row):
+		for row in range(self.first_row+1, self.last_row):
 			'''
 			первая строка каждого нового дня содержит имя недели, а остальные строки - пусты
 			например
@@ -187,10 +193,6 @@ class Document(Parser):
 						iCell = sheet.cell_value(row, self.column-i) 
 
 						if not isinstance(iCell, float):
-							# if not any(_.isdigit() for _ in str(iCell).split(" ")) and not any(_.isalpha() for _ in str(iCell).split(" ")): # "".join(str(iCell).split(" ")).isdigit()
-							# 	if len(iCell):
-							# 		subject = iCell
-							# 		break
 							if not "".join(str(iCell).split(" ")).isdigit() and not any(_ in str(iCell).lower() for _ in ["ктф", "анатом."]) and str(iCell) != ".":
 								if len(iCell):
 									subject = iCell
