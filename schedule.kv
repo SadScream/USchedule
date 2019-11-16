@@ -1,5 +1,3 @@
-
-
 <Container>:
 	rows: 2
 
@@ -7,10 +5,11 @@
 	reloadBtn: reloadBtn
 	courseSpinner: courseSpinner
 	groupSpinner: groupSpinner
+	fontSpinner: fontSpinner
 
 	GridLayout:
-		cols: 3
-		size_hint_y: 0.06
+		cols: 4
+		size_hint_y: 0.055
 
 		Spinner:
 			id: courseSpinner
@@ -22,14 +21,18 @@
 			size: (150, 44)
 			on_text: root.groupChanged()
 
+		Spinner:
+			id: fontSpinner
+			size: (150, 44)
+			on_text: root.fontChanged()
+
 		Button:
 			id: reloadBtn
-			text: "Update"
 			disabled: False
 
 	BoxLayout:
 		RstDocument:
 			id: rst
 			text: ""
-			base_font_size: 15
+			base_font_size: "16sp"
 			on_text: root.scheduleChanged()

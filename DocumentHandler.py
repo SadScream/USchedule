@@ -78,9 +78,10 @@ class Document(Parser):
 
 
 	def get_data(self):
-		self.sheet_name = config.read("currentSheet") # наименование рабочей страницы строго как в эксель файле
+		self.sheet_name = config.read("currentCourse") # наименование рабочей страницы строго как в эксель файле
 		self.group = config.read("currentGroup") # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
 		self.column=14 # дефолт
+		self.last_column=0
 
 
 	def open(self):
@@ -90,14 +91,23 @@ class Document(Parser):
 		for column in range(sheet.ncols):
 			if self.group.lower() in sheet.cell_value(2, column).lower():
 				self.column = column # запоминаем местоположение столбца нашей группы
+			elif "уч. года" in sheet.cell_value(2, column).lower():
+				self.last_column = column
+				break
+
+		for row in range(sheet.nrows):
+			if "суббота" in sheet.cell_value(row, 0).lower():
+				self.last_row = row+6
+				break
 
 		return sheet
 
 
 	def generateTable(self, sheet, week, date):
 		days = []
-		d = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
-		tbl = {
+		DAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
+		
+		self.tbl = {
 			f'{date}. Неделя': f'{week}',
 			'Расписание для': f'{self.sheet_name} {sheet.cell_value(2, self.column)}',
 			'Понедельник': [],
@@ -108,7 +118,7 @@ class Document(Parser):
 			'Суббота': []
 		}
 
-		for row in range(3, sheet.nrows):
+		for row in range(3, self.last_row):
 			'''
 			первая строка каждого нового дня содержит имя недели, а остальные строки - пусты
 			например
@@ -123,24 +133,41 @@ class Document(Parser):
 			'''
 
 			if len(sheet.cell_value(row, 0)):
-				for item in d:
+				for item in DAYS:
 					if item in sheet.cell_value(row, 0).lower():
 						days.append(item)
 
 			time = sheet.cell_value(row, 1).strip().replace("--", "-") # время
 			subject = sheet.cell_value(row, self.column) # предмет
-			kind = sheet.cell_value(row, self.column+1 ) # тип занятия(лек., пр., лаб.)
+			kind = sheet.cell_value(row, self.column+1) # тип занятия(лек., пр., лаб.)
 			audience = "" # аудитория
 
-			for i in range(2, self.column-1): # ищем номер аудитории
-				p = sheet.cell_value(row, self.column+i)
+			for i in range(2, self.last_column-1): # ищем номер аудитории
+				try:
+					p = sheet.cell_value(row, self.column+i)
+				except:
+					break
+
+				p_splited = "".join(str(p).split("*"))
 
 				if isinstance(p, float):
-					audience = str(p).split(".")[0]
+					audience = str(int(p))
 					break
 				elif "".join(str(p).split(" ")).isdigit():
 					audience = p
 					break
+				elif "".join(str(p).split(",")).isdigit():
+					audience = p
+					break
+				elif p_splited.isdigit():
+					audience = p
+					break						
+				elif "".join(p_splited.split(" ")).isdigit():
+					audience = p
+					break
+				elif "".join(p_splited.split("\n")).isdigit():
+					audience = p
+					break				
 				elif not "".join(str(p).split(" ")).isdigit():
 					continue
 
@@ -160,7 +187,11 @@ class Document(Parser):
 						iCell = sheet.cell_value(row, self.column-i) 
 
 						if not isinstance(iCell, float):
-							if not "".join(str(iCell).split(" ")).isdigit():
+							# if not any(_.isdigit() for _ in str(iCell).split(" ")) and not any(_.isalpha() for _ in str(iCell).split(" ")): # "".join(str(iCell).split(" ")).isdigit()
+							# 	if len(iCell):
+							# 		subject = iCell
+							# 		break
+							if not "".join(str(iCell).split(" ")).isdigit() and not any(_ in str(iCell).lower() for _ in ["ктф", "анатом."]) and str(iCell) != ".":
 								if len(iCell):
 									subject = iCell
 									break
@@ -173,12 +204,13 @@ class Document(Parser):
 			audience = sub(r' +', ' ', str(audience)).strip().replace("\n", " ")
 
 			if subject == "":
-				tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
+				if len(self.tbl[days[-1].title()]) != 6:
+					self.tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
 				continue
 
 			elif "физич" in ''.join(subject.lower().split(' ')): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
 				subject = "Физ. культура"
-				tbl[days[-1].title()].append(f"{time} {subject}")
+				self.tbl[days[-1].title()].append(f"{time} {subject}")
 				continue
 
 			elif "исто" in ''.join(subject.lower().split(' ')):
@@ -191,9 +223,9 @@ class Document(Parser):
 			elif any(_ in subject.lower() for _ in ['дв', 'культура']):
 				subject = "Культура и традиции"
 
-			tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
+			self.tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
 
-		return tbl
+		return self.tbl
 
 
 	def file_input(self, table):
