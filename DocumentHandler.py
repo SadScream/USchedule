@@ -207,12 +207,12 @@ class Document(Parser):
 
 			if subject == "":
 				if len(self.tbl[days[-1].title()]) != 6:
-					self.tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
+					self.tbl[days[-1].title()].append(f"{time}: -" if len(time) else "-")
 				continue
 
 			elif "физич" in ''.join(subject.lower().split(' ')): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
 				subject = "Физ. культура"
-				self.tbl[days[-1].title()].append(f"{time} {subject}")
+				self.tbl[days[-1].title()].append(f"{time}: {subject}")
 				continue
 
 			elif "исто" in ''.join(subject.lower().split(' ')):
@@ -225,7 +225,7 @@ class Document(Parser):
 			elif any(_ in subject.lower() for _ in ['дв', 'культура']):
 				subject = "Культура и традиции"
 
-			self.tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
+			self.tbl[days[-1].title()].append(f"{time}: {subject}   Ауд. {audience} {kind}")
 
 		return self.tbl
 

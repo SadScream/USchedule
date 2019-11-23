@@ -37,16 +37,23 @@ class Container(GridLayout):
 		with open("table.json", "r", encoding='utf-8') as file:
 			table = loads(file.read())
 
+		line = f"[size=13][s]\n{' '*round(self.width/3)}\n[/s][/size]"
+
 		for j, (k, v) in enumerate(table.items()):
 			if j > 1:
-				self.rst.text += f"\n\n====\n\n**{k}**:\n\n"
+				if v[-1] == "-":
+					v = v[:-1]
+				self.rst.text += f"\n[b]{k}[/b]:{line}"
 
 				for i, item in enumerate(v):
-					self.rst.text += f"{item}\n\n"
+					if i < len(v)-1:
+						self.rst.text += f"{item}{line}"
+					else:
+						self.rst.text += f"{item}"
+
+				self.rst.text += line
 			elif j == 0:
 				self.rst.text += f"{k}: {v}\n\n"
-			elif j == 1:
-				continue
 
 		config.write("groupJson", document.tbl["Расписание для"])
 		instance.text = "Обновить"
@@ -54,7 +61,7 @@ class Container(GridLayout):
 
 	def fontChanged(self):
 		config.write("currentFont", self.fontSpinner.text)
-		self.rst.base_font_size = self.fontSpinner.text.replace(" шрифт", "sp")
+		self.rst.font_size = int(self.fontSpinner.text.replace(" шрифт", ""))
 
 	def scheduleChanged(self):
 		config.write("schedule", self.rst.text)
