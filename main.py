@@ -1,4 +1,4 @@
-__version__ = "1.1"
+__version__ = "1.3"
 
 from kivy.app import App
 from kivy.config import Config
@@ -47,9 +47,9 @@ class Container(GridLayout):
 
 				for i, item in enumerate(v):
 					if i < len(v)-1:
-						self.rst.text += f"{item}{line}"
+						self.rst.text += f"{' '*6}{item}{line}"
 					else:
-						self.rst.text += f"{item}"
+						self.rst.text += f"{' '*6}{item}"
 
 				self.rst.text += line
 			elif j == 0:

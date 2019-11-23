@@ -154,7 +154,8 @@ class Document(Parser):
 				except:
 					break
 
-				p_splited = "".join(str(p).split("*"))
+				p_splited1 = "".join(str(p).split("*"))
+				p_splited2 = "".join(str(p).split("а"))
 
 				if isinstance(p, float):
 					audience = str(int(p))
@@ -165,15 +166,18 @@ class Document(Parser):
 				elif "".join(str(p).split(",")).isdigit():
 					audience = p
 					break
-				elif p_splited.isdigit():
+				elif p_splited1.isdigit():
 					audience = p
 					break						
-				elif "".join(p_splited.split(" ")).isdigit():
+				elif "".join(p_splited1.split(" ")).isdigit():
 					audience = p
 					break
-				elif "".join(p_splited.split("\n")).isdigit():
+				elif "".join(p_splited1.split("\n")).isdigit():
 					audience = p
-					break				
+					break
+				elif "".join(p_splited2.split(" ")).isdigit():
+					audience = p
+					break		
 				elif not "".join(str(p).split(" ")).isdigit():
 					continue
 
@@ -219,10 +223,10 @@ class Document(Parser):
 				if "яковлев" in subject.lower():
 					subject = "История Яковлел А.И."
 
-			elif "дв2" in subject.lower():
+			elif all(_ in subject.lower() for _ in ['дв2', 'якут']):
 				subject = "Якутский язык"
 
-			elif any(_ in subject.lower() for _ in ['дв', 'культура']):
+			elif all(_ in subject.lower() for _ in ['дв', 'культура']):
 				subject = "Культура и традиции"
 
 			self.tbl[days[-1].title()].append(f"{time}: {subject}   Ауд. {audience} {kind}")
