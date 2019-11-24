@@ -1,4 +1,4 @@
-__version__ = "1.4"
+# -*- coding: utf-8 -*-
 
 from kivy.app import App
 from kivy.config import Config

@@ -2,13 +2,10 @@
 Приложение служит для формирования расписания в приятный для глаз формат.
 
 ---
-Написано на языке Python с использованием фреймворка Kivy.
+Написано на языке Python с использованием фреймворка Kivy. О том, как устанавливается этот пакет, можно узнать на официальном сайте : https://kivy.org/doc/stable/gettingstarted/installation.html (заблокирован на территории РФ).
 
 ---
-О том, как устанавливается этот пакет, можно узнать на официальном сайте : https://kivy.org/doc/stable/gettingstarted/installation.html (заблокирован на территории РФ).
-
----
-Упаковка в .apk-файл производилась на виртуальной машине с операционной системой Ubuntu 18.04 при помощи пакета buildozer.
+Упаковка в [.apk-файл](https://drive.google.com/open?id=1rbRh1PIGq1qfzLs1zEgeQGJhI8MQsqES) производилась на виртуальной машине с операционной системой Ubuntu 18.04 при помощи пакета [buildozer](https://www.youtube.com/watch?v=IzKJgpJrrQU&list=PLlWXhlUMyoobAlP3mZ0_uuJagsDSg_5YT&index=2).
 
 ---
 ### Использование:
@@ -34,6 +31,6 @@
 ![third course example](./etc/example_course3.jpg)
 
 ---
-- Пример загрузки расписания иной выбранной группы
+Пример загрузки расписания иной выбранной группы
 
 ![example of updating](./etc/example_updating.jpg)

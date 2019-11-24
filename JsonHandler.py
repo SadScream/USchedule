@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from os import listdir, getcwd
 from json import loads, dumps
 
