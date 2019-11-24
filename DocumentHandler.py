@@ -133,10 +133,13 @@ class Document(Parser):
 					if item in sheet.cell_value(row, 0).lower():
 						days.append(item)
 
+
 			time = sheet.cell_value(row, 1).strip().replace("--", "-") # время
 			subject = sheet.cell_value(row, self.column) # предмет
 			kind = sheet.cell_value(row, self.column+1) # тип занятия(лек., пр., лаб.)
 			audience = "" # аудитория
+
+			# --
 
 			if not(len(subject)):
 				'''
@@ -144,18 +147,28 @@ class Document(Parser):
 				тут мы ищем его название в соседних ячейках
 				'''
 
-				if len(sheet.cell_value(row, self.column+1)):
+				if len(sheet.cell_value(row, self.column+1)): # если справа от ячейки указана аудитория, значит где-то слева стоит название предмета
 					for i in range(1, sheet.ncols):
 						if len(sheet.cell_value(row, self.column-i)):
 							subject = sheet.cell_value(row, self.column-i)
 							break
 
 				else:
+					'''
+					в ином случае идем в левую сторону и ищем ячейку, которая находится под столбцом с наименованием направления,
+					потому как только под ними располагаются искомые ячейки с наименованием предмета
+					'''
+
 					for i in range(1, self.column-1):
 						cellValue = str(sheet.cell_value(self.first_row, self.column-i)).lower()
 						iCell = str(sheet.cell_value(row, self.column-i)) 
 
 						if "".join(cellValue.split(" ")) in ["", "ауд"]:
+							'''
+							если мы наткнулись на ячейку, расположенную под столбцом аудиторий
+							и при этом она содержит в себе какое-то значение, значит дальше идти нет смысла
+							'''
+
 							if len("".join(iCell.split(" "))) > 2:
 								break
 							continue
@@ -166,6 +179,8 @@ class Document(Parser):
 						if not "".join(iCell.lower().split(" ")) in ["", "."] and len(iCell) > 2:
 							subject = iCell
 							break
+
+			# по примерно такому же принципу ищем тип занятия и аудиторию
 
 			if not(len(kind)):
 				for i in range(1, self.last_column-self.column):
@@ -198,6 +213,9 @@ class Document(Parser):
 
 				audience = p
 				break
+
+			# --
+
 
 			subject = sub(r' +', ' ', str(subject)).strip().replace("\n", " ") # убираем дебильные пробелы
 			audience = sub(r' +', ' ', str(audience)).strip().replace("\n", " ")

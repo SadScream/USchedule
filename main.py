@@ -1,4 +1,4 @@
-__version__ = "1.3"
+__version__ = "1.4"
 
 from kivy.app import App
 from kivy.config import Config
