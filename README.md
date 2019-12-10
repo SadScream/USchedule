@@ -5,7 +5,7 @@
 Написано на языке Python3 с использованием фреймворка Kivy. О том, как устанавливается этот фреймворк, можно узнать на официальном сайте : https://kivy.org/doc/stable/gettingstarted/installation.html (заблокирован на территории РФ).
 
 ---
-Упаковка в [.apk-файл](https://drive.google.com/open?id=1rbRh1PIGq1qfzLs1zEgeQGJhI8MQsqES) производилась на виртуальной машине с операционной системой Ubuntu 18.04 при помощи пакета [buildozer](https://www.youtube.com/watch?v=IzKJgpJrrQU&list=PLlWXhlUMyoobAlP3mZ0_uuJagsDSg_5YT&index=2).
+Упаковка в [.apk-файл](https://drive.google.com/open?id=1ewnzrnqmGU6YzMhlfZse1OPXg-znLYhq) производилась на виртуальной машине с операционной системой Ubuntu 18.04 при помощи пакета [buildozer](https://www.youtube.com/watch?v=IzKJgpJrrQU&list=PLlWXhlUMyoobAlP3mZ0_uuJagsDSg_5YT&index=2).
 
 ---
 ### Использование:
