@@ -84,10 +84,13 @@ class Document(Parser):
 				self.last_row = row+6
 				break
 
+		found_group = False
 		found = False
 		for column in range(sheet.ncols):
 			if self.group.lower() in str(sheet.cell_value(self.first_row, column)).lower():
-				self.column = column # запоминаем местоположение столбца нашей группы
+				if not found_group:
+					self.column = column # запоминаем местоположение столбца нашей группы
+					found_group= True
 			else:
 				for i in range(5):
 					if "недели" in str(sheet.cell_value(self.first_row-2+i, column)).lower(): # номер последней колонны

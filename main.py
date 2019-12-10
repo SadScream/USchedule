@@ -32,7 +32,8 @@ class Container(GridLayout):
 
 	def generateTable(self, instance=None):
 		document = Document()
-		self.rst.text = ''
+		self.rst.text = ' '
+		text = ''
 
 		with open("table.json", "r", encoding='utf-8') as file:
 			table = loads(file.read())
@@ -43,18 +44,19 @@ class Container(GridLayout):
 			if j > 1:
 				if v[-1] == "-":
 					v = v[:-1]
-				self.rst.text += f"\n[b]{k}[/b]:{line}"
+				text += f"\n[b]{k}[/b]:{line}"
 
 				for i, item in enumerate(v):
 					if i < len(v)-1:
-						self.rst.text += f"{' '*6}{item}{line}"
+						text += f"{' '*6}{item}{line}"
 					else:
-						self.rst.text += f"{' '*6}{item}"
+						text += f"{' '*6}{item}"
 
-				self.rst.text += line
+				text += line
 			elif j == 0:
-				self.rst.text += f"{k}: {v}\n\n"
+				text += f"{k}: {v}\n\n"
 
+		self.rst.text = text
 		config.write("groupJson", document.tbl["Расписание для"])
 		instance.text = "Обновить"
 		self.turn(1)
