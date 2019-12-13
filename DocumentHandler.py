@@ -107,8 +107,8 @@ class Document(Parser):
 		DAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
 
 		self.tbl = {
-			f'{date}. Неделя': f'{week}',
 			'Расписание для': f'{self.sheet_name} {sheet.cell_value(self.first_row, self.column)}',
+			f'{date}. Неделя': f'{week}',
 			'Понедельник': [],
 			'Вторник': [],
 			'Среда': [],
