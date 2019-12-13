@@ -43,7 +43,7 @@ KV = """
 
 			Button:
 				text: 'Дополнительно'
-				font_size: 14
+				font_size: '14sp'
 				id: gotoSettings
 				on_press:
 					root.manager.current = 'settings'
@@ -51,14 +51,14 @@ KV = """
 
 			Spinner:
 				id: fontSpinner
-				font_size: 14
+				font_size: '14sp'
 				sync_height: True
 				size: (150, 44)
 				on_text: root.fontChanged()
 
 			Button:
 				id: reloadBtn
-				font_size: 14
+				font_size: '14sp'
 
 		BoxLayout:
 			ScrollView:
@@ -118,6 +118,8 @@ KV = """
 
 Config.set("graphics", "width", "360")
 Config.set("graphics", "height", "640")
+Config.set('graphics', 'fullscreen', False)
+Config.write()
 
 Builder.load_string(KV)
 
