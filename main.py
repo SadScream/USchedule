@@ -5,12 +5,13 @@ from kivy.config import Config
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 
+from datetime import datetime
 from threading import Thread
 from json import loads
 from time import sleep
 
 from JsonHandler import JsonHandler
-from DocumentHandler import Document
+from scheduleParser import Document
 
 
 
@@ -33,13 +34,14 @@ KV = """
 	gotoSettings: gotoSettings
 	fontSpinner: fontSpinner
 	reloadBtn: reloadBtn
+	scrollArea: scrollArea
 
 	GridLayout:
 		rows: 2
 
 		GridLayout:
 			cols: 3
-			size_hint_y: 0.053
+			size_hint_y: 0.057
 
 			Button:
 				text: 'Дополнительно'
@@ -62,6 +64,10 @@ KV = """
 
 		BoxLayout:
 			ScrollView:
+				id: scrollArea
+				scroll_timeout: 250
+				padding: [0, 1, 0, 0]
+
 				BackgroundLabel:
 					color: (0, 0, 0, 1)
 					background_color: (.9, .9, .9, 1)
@@ -77,6 +83,7 @@ KV = """
 
 <Settings>:
 	gotoContainer: gotoContainer
+	instSpinner: instSpinner
 	groupSpinner: groupSpinner
 	courseSpinner: courseSpinner
 
@@ -89,26 +96,30 @@ KV = """
 		orientation: 'vertical'
 
 		Button:
-			size_hint_y: 0.056
+			size_hint_y: 0.065
 			id: gotoContainer
 			text: 'Назад'
 			on_press:
 				root.manager.current = 'container'
 				root.manager.transition.direction = 'left'
-		
-		BoxLayout:
-			size_hint_y: 0.056
-			orientation: 'horizontal'
 
-			Spinner:
-				id: courseSpinner
-				sync_height: True
-				on_text: root.courseChanged()
+		Spinner:
+			id: instSpinner
+			size_hint_y: 0.065
+			sync_height: True
+			on_text: root.instChanged()
 
-			Spinner:
-				id: groupSpinner
-				sync_height: True
-				on_text: root.groupChanged()
+		Spinner:
+			id: courseSpinner
+			size_hint_y: 0.065
+			sync_height: True
+			on_text: root.courseChanged()
+
+		Spinner:
+			id: groupSpinner
+			size_hint_y: 0.065
+			sync_height: True
+			on_text: root.groupChanged()
 
 		BoxLayout:
 			margin: [0, 0, 0, 100]
@@ -133,42 +144,40 @@ class Container(Screen):
 		if instance.text == "Получить":
 			config.write("currentGroup", settings.groupSpinner.text)
 			config.write("currentCourse", settings.courseSpinner.text)
+			config.write("currentInst", settings.instSpinner.text)
 
 		self.turn(0)
 		instance.text = "Ожидайте"
 		thread = Thread(target=self.generateTable, args=(instance,))
 		thread.start()
 
-	def generateTable(self, instance=None):
-		document = Document()
+	def generateTable(self, instance=None): 
+		date = datetime.now().strftime("%d-%m-%Y")
+		group = settings.groupSpinner.text
+		table = Document(group, date).complete()
+
 		self.rst.text = ' '
 		text = ''
-
-		with open("table.json", "r", encoding='utf-8') as file:
-			table = loads(file.read())
 
 		line = f"[size=13][s]\n{' '*round(self.width/3)}\n[/s][/size]"
 
 		for j, (k, v) in enumerate(table.items()):
-			if j > 1:
-				if v[-1] == "-":
-					v = v[:-1]
+			if j == 0:
+				text += f"{v}\n\n"
+
+			elif j > 0:
 				text += f"\n[b]{k}[/b]:{line}"
+				j = 0
 
-				for i, item in enumerate(v):
-					if i < len(v)-1:
-						text += f"{' '*6}{item}{line}"
-					else:
-						text += f"{' '*6}{item}"
+				for key, value in v.items():
+					if value == "":
+						value = "-"
 
-				text += line
-			elif j == 0:
-				text += f"{k}: {v}\n"
-			elif j == 1:
-				text += f"{k}: {v}\n\n"
+					text += f"{key}: {value}{line}"
 
 		self.rst.text = text
-		config.write("groupJson", document.tbl["Расписание для"])
+		self.scrollArea.scroll_y = 1
+		config.write("groupJson", table["DAT"])
 		instance.text = "Обновить"
 		self.turn(1)
 
@@ -192,6 +201,49 @@ class Container(Screen):
 
 class Settings(Screen):
 
+
+	def instChanged(self):
+		GAC = config.read("database")[self.instSpinner.text]
+		currentInst = config.read("currentInst")
+
+		courses = []
+
+		if currentInst == "":
+			config.write("currentInst", self.instSpinner.text)
+
+		for item in GAC:
+			for k, v in item.items():
+				courses.append(k)
+
+		self.courseSpinner.values = tuple(courses)
+
+		if self.courseSpinner.text != courses[0]:
+			self.courseSpinner.text = courses[0]
+		else:
+			self.courseChanged()
+
+
+	def courseChanged(self):
+		GAC = config.read("database")[self.instSpinner.text]
+		currentCourse = config.read("currentCourse")
+		currentGroup = config.read("currentGroup")
+
+		if currentCourse == "":
+			config.write("currentCourse", self.courseSpinner.text)
+
+		for item in GAC:
+			for k, v in item.items():
+				if self.courseSpinner.text == k:
+					self.groupSpinner.values = tuple(v)
+
+					if self.groupSpinner.text != v[0]:
+						self.groupSpinner.text = v[0]
+					else:
+						self.groupChanged()
+					
+					if currentGroup == "":
+						config.write("currentGroup", self.groupSpinner.text)
+
 	def groupChanged(self):
 		tableGroup = config.read("groupJson")
 
@@ -200,22 +252,6 @@ class Settings(Screen):
 				container.reloadBtn.text = "Обновить"
 			else:
 				container.reloadBtn.text = "Получить"
-
-	def courseChanged(self):
-		GAC = config.read("courses")
-		currentGroup = config.read("currentGroup")
-		currentCourse = config.read("currentCourse")
-
-		if currentCourse == "":
-			config.write("currentCourse", self.courseSpinner.text)
-
-		for i, item in enumerate(GAC):
-			if self.courseSpinner.text in item:
-				self.groupSpinner.values = tuple(GAC[i][self.courseSpinner.text])
-				self.groupSpinner.text = GAC[i][self.courseSpinner.text][0]
-				
-				if currentGroup == "":
-					config.write("currentGroup", self.groupSpinner.text)
 
 
 screen_manager = ScreenManager()
@@ -232,10 +268,11 @@ class ScheduleApp(App):
 		container.reloadBtn.bind(on_release=container.pressed)
 
 		# получение наборов значений для селекторов
-		GAC = config.read("courses") # groups and courses
+		GAC = config.read("database")
 		fonts = config.read("fonts")
 
 		# получение последних значений селекторов, шрифта и расписания
+		currentInst = config.read("currentInst")
 		currentCourse = config.read("currentCourse")
 		currentGroup = config.read("currentGroup")
 		currentFont = config.read("currentFont")
@@ -248,6 +285,7 @@ class ScheduleApp(App):
 		container.reloadBtn.text = "Получить" if container.rst.text == "" else "Обновить"
 		
 		# установка значений селекторов и панели расписания
+		settings.instSpinner.value = "Институт"
 		settings.courseSpinner.value = "Курс"
 		settings.groupSpinner.value = "Группа"
 		container.fontSpinner.value = "Шрифт"
@@ -255,11 +293,14 @@ class ScheduleApp(App):
 
 		# заполнение селекторов
 		container.fontSpinner.values = tuple(fonts)
-		settings.courseSpinner.values = tuple(_ for key in GAC for _, v in key.items())
 
-		if not len(currentCourse) and not len(currentGroup):
-			settings.courseSpinner.text = [k for k, v in GAC[0].items()][0]
+		settings.instSpinner.values = tuple(GAC.keys())
+
+		if not len(currentInst):
+			settings.instSpinner.text = [_ for _ in GAC.keys()][0]
+			#  settings.courseSpinner.text = [itm for itm in GAC[[_ for _ in GAC.keys()][0]][0].keys()][0]
 		else:
+			settings.instSpinner.text = currentInst
 			settings.courseSpinner.text = currentCourse
 			settings.groupSpinner.text = currentGroup
 
