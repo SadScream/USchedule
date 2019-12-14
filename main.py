@@ -35,9 +35,11 @@ KV = """
 	fontSpinner: fontSpinner
 	reloadBtn: reloadBtn
 	scrollArea: scrollArea
+	errorLayout: errorLayout
+	errorLabel: errorLabel
 
 	GridLayout:
-		rows: 2
+		rows: 3
 
 		GridLayout:
 			cols: 3
@@ -63,6 +65,7 @@ KV = """
 				font_size: '14sp'
 
 		BoxLayout:
+			orientation: 'vertical'
 			ScrollView:
 				id: scrollArea
 				scroll_timeout: 250
@@ -80,6 +83,18 @@ KV = """
 					height: self.texture_size[1]
 					markup: True
 					on_text: root.scheduleChanged()
+
+		AnchorLayout:
+			id: errorLayout
+			anchor_x: 'center'
+			anchor_y: 'bottom'
+			size_hint_y: 0
+
+			Label:
+				id: errorLabel
+				text: ""
+				color: (1, 0.2, 0.2, 1)
+				font_size: '14sp'
 
 <Settings>:
 	gotoContainer: gotoContainer
@@ -100,6 +115,7 @@ KV = """
 			id: gotoContainer
 			text: 'Назад'
 			on_press:
+				root.gotoPressed()
 				root.manager.current = 'container'
 				root.manager.transition.direction = 'left'
 
@@ -134,31 +150,69 @@ Config.write()
 
 Builder.load_string(KV)
 
-
 config = JsonHandler()
 
 
 class Container(Screen):
 
-	def pressed(self, instance):
+	def pressed(self, instance, start = False):
+		self.turn(0)
+		self.scrollArea.scroll_y = 1	
+		self.scrollArea.do_scroll = False
+		self.thread = Thread(target=self.generateTable, args=(instance, start))
+		self.thread.start()
+
+	def showError(self, text, layout, label):
+		i = 0.0
+		
+		while True:
+			if i > 0.03:
+				label.text = text
+				break
+
+			i += 0.001
+			sleep(0.01)
+			layout.size_hint_y = i
+		
+		sleep(3)
+		label.text = ""
+
+		while True:
+			if i <= 0:
+				break
+
+			i -= 0.001
+			sleep(0.01)
+			layout.size_hint_y = i
+		
+		self.scrollArea.do_scroll = True
+		return
+
+	def generateTable(self, instance=None, start = False):
+		date = datetime.now().strftime("%d-%m-%Y")
+		group = settings.groupSpinner.text
+		table = Document(group, date).complete()
+
+		if not table:
+			instance.text = "Обновить"
+
+			self.turn(1)
+
+			if not start:
+				self.thread = Thread(target=self.showError, args=("Ошибка соединения", self.errorLayout, self.errorLabel))
+				self.thread.start()
+			else:
+				self.scrollArea.do_scroll = True
+				
+			return False
+
 		if instance.text == "Получить":
 			config.write("currentGroup", settings.groupSpinner.text)
 			config.write("currentCourse", settings.courseSpinner.text)
 			config.write("currentInst", settings.instSpinner.text)
 
-		self.turn(0)
 		instance.text = "Ожидайте"
-		thread = Thread(target=self.generateTable, args=(instance,))
-		thread.start()
-
-	def generateTable(self, instance=None): 
-		date = datetime.now().strftime("%d-%m-%Y")
-		group = settings.groupSpinner.text
-		table = Document(group, date).complete()
-
-		self.rst.text = ' '
 		text = ''
-
 		line = f"[size=13][s]\n{' '*round(self.width/3)}\n[/s][/size]"
 
 		for j, (k, v) in enumerate(table.items()):
@@ -175,8 +229,10 @@ class Container(Screen):
 
 					text += f"{key}: {value}{line}"
 
+		self.rst.text = ' '
 		self.rst.text = text
-		self.scrollArea.scroll_y = 1
+		self.scrollArea.do_scroll = True
+		
 		config.write("groupJson", table["DAT"])
 		instance.text = "Обновить"
 		self.turn(1)
@@ -201,6 +257,9 @@ class Container(Screen):
 
 class Settings(Screen):
 
+	def gotoPressed(self):
+		if container.reloadBtn.text == "Получить":
+			container.pressed(container.reloadBtn)
 
 	def instChanged(self):
 		GAC = config.read("database")[self.instSpinner.text]
@@ -303,6 +362,9 @@ class ScheduleApp(App):
 			settings.instSpinner.text = currentInst
 			settings.courseSpinner.text = currentCourse
 			settings.groupSpinner.text = currentGroup
+
+		if container.reloadBtn.text == "Обновить":
+			container.pressed(container.reloadBtn, start = True)
 
 		return screen_manager
 

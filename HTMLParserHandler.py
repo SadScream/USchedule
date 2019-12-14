@@ -3,7 +3,19 @@ import requests
 from urllib.parse import quote
 
 
+'''
+файл для формирования базы институтов
+запускается вручную
+выхлоп нужно поместить в переменную database библиотеки JsonHandler
+можно подкрутить к приложению, но формируется слишком долго, надо думать
+'''
+
+
 def get_institutes():
+	'''
+	простой скрипт для получения списка институтов
+	'''
+
 	headers = {
 		"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
 		"Accept-Encoding": "gzip, deflate, br",
@@ -30,6 +42,10 @@ def get_institutes():
 
 
 def get_groups(date):
+	'''
+	скрипт посложнее для получения списка курсов каждого института, а также списка групп каждого курса
+	'''
+
 	institutes = get_institutes()
 
 	headers = {
@@ -51,23 +67,25 @@ def get_groups(date):
 	data = {}
 
 	for inst in institutes:
-		u = f"action=showgroups&fac={quote(inst)}&mydate={date}"
+		u = f"action=showgroups&fac={quote(inst)}&mydate={date}" # для каждого института формируется отдельный запрос на список курсов и групп
 		data[inst] = []
 
 		request = requests.post(url='https://www.s-vfu.ru/raspisanie/ajax.php', headers=headers, data=u).content
 		soup = bs.BeautifulSoup(request, "html.parser")
 
-		for i, ort_group in enumerate(soup.find_all("optgroup")):
-			ort_splited = ort_group.attrs['label'].split(', ')[1]
+		for i, ort_group in enumerate(soup.find_all("optgroup")): # ortgroup - курсы
+			ort_splited = ort_group.attrs['label'].split(', ')[1] # убираем лишнюю часть из наименования курса
 
 			data[inst].append({ort_splited: []})
 
-			for j, group in enumerate(ort_group.find_all("option")):
+			for j, group in enumerate(ort_group.find_all("option")): # option - группы
 
 				if len(data[inst]):
 					'''
-					проверка, на случай, если в списке групп какого-то курса уместились все группы последующих курсов
+					далее проверка, на случай, если в списке групп какого-то курса уместились все группы последующих курсов
+					случается из-за незакрытого тега
 					'''
+
 					for k, v in data[inst][i-1].items():
 						if group.text in v:
 							key = [_ for _ in data[inst][i-1]][0]

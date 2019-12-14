@@ -11,7 +11,14 @@ class Document:
 
 
 	def complete(self):
+		'''
+		формирование расписания
+		'''
+
 		soup = self.get_soup()
+
+		if not soup:
+			return False
 
 		rasp = []
 
@@ -29,13 +36,35 @@ class Document:
 		current_time = ''
 
 		for line in body.find_all("tr"):
-			if line.attrs["class"][0] == "error":
+			'''
+			элементы располагаются примерно таким образом
+
+			<tr class='error'>Понедельник</tr>
+				<tr class='success'>08:00-09:35
+					<td>Матеша</td>
+					<td>330 КФЕН</td>
+				</tr>
+
+				<tr class='success'>09:50 - 11:25
+					<td>Информатеша</td>
+					<td>Группа 1</td>
+					<td>436 КФЕН</td>
+				</tr>
+				<tr class='success'>09:50 - 11:25
+					<td>Информатеша</td>
+					<td>Группа 2</td>
+					<td>430 КФЕН</td>
+				</tr>
+			<tr class='error'>Вторник</tr>
+			'''
+
+			if line.attrs["class"][0] == "error": # элементы tr с атрибутом class=error - дни недели
 				current_day = line.text.split(" ")[0].capitalize()
 				data[current_day] = {"08:00 - 09:35": [], "09:50 - 11:25": [], "11:40 - 13:15": [], "14:00 - 15:35": [], "15:50 - 17:25": [], "17:30 - 19:15": []}
 
-			elif line.attrs["class"][0] == "success":
+			elif line.attrs["class"][0] == "success": # элементы tr с атрибутом class=success - предметы
 				for sub in line.find_all("td"):
-					if sub.text.replace("-", " - ") in data[current_day]:
+					if sub.text.replace("-", " - ") in data[current_day]: # элементы, относящиеся к одному и тому же времени, добавляем в список с соответствеющим временем 
 						current_time = sub.text.replace("-", " - ")
 						continue
 					data[current_day][current_time].append(sub.text.strip())
@@ -46,6 +75,10 @@ class Document:
 
 
 	def reconstruct(self, DATA):
+		'''
+		приведение json`а к удобному формату
+		'''
+
 		data = {}
 		
 		for k, v in DATA.items():
@@ -56,7 +89,10 @@ class Document:
 					data[k][key] = ''
 
 					for i, item in enumerate(value):
-
+						'''
+						убираем лишнюю информацию в виде имени препода, а также повторения названия предмета
+						'''
+						
 						if i % 2 == 0:
 							if item not in data[k][key]:
 								data[k][key] = data[k][key] + ' ' + item
@@ -71,6 +107,10 @@ class Document:
 
 
 	def get_soup(self):
+		'''
+		получение html-документа, содержимым которого является расписание конкретной группы self.group
+		'''
+
 		headers = {
 			"Host": "www.s-vfu.ru",
 			"Connection": "keep-alive",
@@ -90,8 +130,16 @@ class Document:
 
 
 		data = f"action=showrasp&groupname={quote(self.group)}&mydate={self.date}"
-		request = requests.post(url='https://www.s-vfu.ru/raspisanie/ajax.php', headers=headers, data=data).content
-		soup = bs.BeautifulSoup(request, "html.parser")
+
+		try:
+			request = requests.post(url='https://www.s-vfu.ru/raspisanie/ajax.php', headers=headers, data=data)
+		except requests.exceptions.ConnectionError:
+			return False
+
+		if request.status_code != 200:
+			return False
+
+		soup = bs.BeautifulSoup(request.content, "html.parser")
 
 		return soup
 
@@ -102,6 +150,7 @@ if __name__ == '__main__':
 
 	group = "ИМИ-БА-ИВТ-19-1"
 	date = datetime.now().strftime("%d-%m-%Y")
+
 	doc = Document(group, date).complete()
 	
 	with open("test.json", "w", encoding="utf-8") as file:
