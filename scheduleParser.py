@@ -22,7 +22,7 @@ class Document:
 
 		rasp = []
 
-		for sym in str(soup):
+		for sym in str(soup)[15:]:
 			if sym != "<":
 				rasp.append(sym)
 			else:
@@ -139,7 +139,7 @@ class Document:
 		if request.status_code != 200:
 			return False
 
-		soup = bs.BeautifulSoup(request.content, "html.parser")
+		soup = bs.BeautifulSoup(request.content, "lxml")
 
 		return soup
 
