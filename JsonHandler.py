@@ -13,7 +13,6 @@ class JsonHandler:
 					"currentCourse": "",
 					"currentGroup": "",
 					"currentFont": "15 шрифт",
-					"lastSchedule": "",
 					"schedule": "",
 					"groupJson": "",
 					"database": database
