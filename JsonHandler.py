@@ -12,7 +12,7 @@ class JsonHandler:
 					"currentInst": "",
 					"currentCourse": "",
 					"currentGroup": "",
-					"currentFont": "15 шрифт",
+					"currentFont": "font",
 					"schedule": "",
 					"groupJson": "",
 					"database": database
