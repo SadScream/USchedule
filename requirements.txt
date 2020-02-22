@@ -2,4 +2,5 @@ Kivy==1.11.1
 xlrd==1.2.0
 requests==2.22.0
 beautifulsoup4==4.8.1
+kivymd==0.103.0
 # buildozer>=0.39,<1.0 to unpack in *.apk file

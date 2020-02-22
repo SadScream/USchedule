@@ -388,7 +388,7 @@ class Settings(Screen):
 				screen_manager.screens[0].ids.reloadBtn.text = "Получить"
 
 
-class TimetableApp(MDApp):
+class ScheduleApp(MDApp):
 
 	def __init__(self, **kwargs):
 		# self.theme_cls.theme_style = "Light"
@@ -459,4 +459,4 @@ if __name__ == '__main__':
 	trans = NoTransition()
 	trans.duration = 0.1
 	screen_manager = ScreenManager(transition=trans) # transition=trans
-	TimetableApp().run()
+	ScheduleApp().run()

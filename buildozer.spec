@@ -1,10 +1,10 @@
 [app]
 
 # (str) Title of your application
-title = Timetable
+title = Schedule
 
 # (str) Package name
-package.name = timetable
+package.name = schedule
 
 # (str) Package domain (needed for android/ios packaging)
 package.domain = org.test
@@ -36,7 +36,7 @@ version = 3.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,requests,beautifulsoup4,xlrd,docutils,lxml,git+https://github.com/HeaTTheatR/KivyMD.git
+requirements = python3,kivy,requests,beautifulsoup4,xlrd,docutils,kivymd
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
