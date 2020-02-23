@@ -4,8 +4,13 @@ from kivymd.app import MDApp
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.animation import Animation
-from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition, CardTransition
-from kivymd.uix.button import BaseRectangularButton, BaseFlatButton, BaseButton
+from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
+from kivymd.uix.button import BaseRectangularButton, BaseFlatButton
+
+from kivymd.uix.menu import MDDropdownMenu
+import kivymd.material_resources as m_res
+from kivy.core.window import Window
+from kivy.metrics import dp
 
 # from kivy.utils import get_color_from_hex
 # from kivymd.color_definitions import colors
@@ -59,7 +64,8 @@ KV = """
 			NonPressButton:
 				id: fontSpinner
 				on_text: root.fontChanged()
-				on_press: MDDropdownMenu(items=app.fonts, width_mult=3).open(self)
+				on_press: app.openMenu(self, app.fonts)
+				# MDDropdownMenu(items=app.fonts, width_mult=3, _center=False).open(self)
 
 			NonPressButton:
 				id: reloadBtn
@@ -131,19 +137,22 @@ KV = """
 			id: instSpinner
 			size_hint_y: 0.073
 			on_text: root.instChanged()
-			on_press: MDDropdownMenu(items=app.insts, width_mult=3).open(self)
+			on_press: app.openMenu(self, app.insts)
+			# MDDropdownMenu(items=app.insts, width_mult=3).open(self)
 
 		NonPressButton:
 			id: courseSpinner
 			size_hint_y: 0.073
 			on_text: root.courseChanged()
-			on_press: MDDropdownMenu(items=root.courses, width_mult=3).open(self)
+			on_press: app.openMenu(self, root.courses)
+			# MDDropdownMenu(items=root.courses, width_mult=3).open(self)
 
 		NonPressButton:
 			id: groupSpinner
 			size_hint_y: 0.073
 			on_text: root.groupChanged()
-			on_press: MDDropdownMenu(items=root.groups, width_mult=3).open(self)
+			on_press: app.openMenu(self, root.groups)
+			# MDDropdownMenu(items=root.groups, width_mult=3).open(self)
 
 		GridLayout:
 			padding: [0, 100]
@@ -163,6 +172,85 @@ config = JsonHandler()
 class NonPressButton(BaseRectangularButton, BaseFlatButton):
 	# MDFlatButton но без BasePressedButton
 	pass
+
+
+class NewMenu(MDDropdownMenu):
+
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+
+	def display_menu(self, caller):
+		'''
+		переопределение метода открытия меню у спиннеров
+		'''
+
+		c = caller.to_window(
+			caller.center_x, caller.center_y
+		)  # Starting coords
+
+		target_width = self.width_mult * m_res.STANDARD_INCREMENT
+		if target_width > Window.width:
+			target_width = (
+				int(Window.width / m_res.STANDARD_INCREMENT)
+				* m_res.STANDARD_INCREMENT
+			)
+
+		target_height = sum([dp(48) for i in self.items])
+		if 0 < self.max_height < target_height:
+			target_height = self.max_height
+
+		if self.ver_growth is not None:
+			ver_growth = self.ver_growth
+		else:
+			if target_height <= c[1] - self.border_margin:
+				ver_growth = "down"
+			elif target_height < Window.height - c[1] - self.border_margin:
+				ver_growth = "up"
+			else:
+				if c[1] >= Window.height - c[1]:
+					ver_growth = "down"
+					target_height = c[1] - self.border_margin
+				else:
+					ver_growth = "up"
+					target_height = Window.height - c[1] - self.border_margin
+
+		if self.hor_growth is not None:
+			hor_growth = self.hor_growth
+		else:
+			if target_width <= Window.width - c[0] - self.border_margin:
+				hor_growth = "right"
+			elif target_width < c[0] - self.border_margin:
+				hor_growth = "left"
+			else:
+				if Window.width - c[0] >= c[0]:
+					hor_growth = "right"
+					target_width = Window.width - c[0] - self.border_margin
+				else:
+					hor_growth = "left"
+					target_width = c[0] - self.border_margin
+
+		if ver_growth == "down":
+			tar_y = c[1] - target_height
+		else:
+			tar_y = c[1]
+
+		if hor_growth == "right":
+			tar_x = c[0]
+		else:
+			tar_x = c[0] - target_width
+
+		menu = self.ids.md_menu
+
+		anim = Animation(
+			x=tar_x,
+			y=tar_y,
+			width=target_width,
+			height=target_height,
+			duration=0,
+			transition="out_quint",
+		)
+		menu.pos = c
+		anim.start(menu)
 
 
 class Container(Screen):
@@ -377,6 +465,12 @@ class ScheduleApp(MDApp):
 
 		super().__init__(**kwargs)
 
+	def openMenu(self, target_widget, items):
+		# костыль для открытия оптимизорованной дропдаун менюшки
+
+		widget = NewMenu(items=items, width_mult=3)
+		widget.open(target_widget)
+
 	def callback_for_font_items(self, *args):
 		screen_manager.screens[0].ids.fontSpinner.text = args[0]
 
@@ -423,14 +517,14 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		# if container.ids.reloadBtn.text == "Обновить":
-		# 	container.pressed(container.ids.reloadBtn, start = True)
+		if container.ids.reloadBtn.text == "Обновить":
+			container.pressed(container.ids.reloadBtn, start = True)
 
 		return screen_manager
 
 if __name__ == '__main__':
 	DB = config.read("database")
-	trans = NoTransition()
-	trans.duration = 0.1
-	screen_manager = ScreenManager(transition=trans) # transition=trans
+	transition = NoTransition()
+	# trans.duration = 0.1
+	screen_manager = ScreenManager(transition=transition)
 	ScheduleApp().run()
