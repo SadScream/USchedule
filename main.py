@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from kivymd.app import MDApp
-from kivy.app import App
 from kivy.config import Config
 from kivy.lang import Builder
 from kivy.animation import Animation
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition, CardTransition
-from kivymd.uix.dropdownitem import MDDropDownItem
-from kivymd.uix.list import IRightBodyTouch
-from kivymd.uix.button import BaseRectangularButton, BaseFlatButton
+from kivymd.uix.button import BaseRectangularButton, BaseFlatButton, BaseButton
 
 # from kivy.utils import get_color_from_hex
 # from kivymd.color_definitions import colors
 
 from datetime import datetime
 from threading import Thread
-from json import loads
 from time import sleep
 
 from JsonHandler import JsonHandler
@@ -30,6 +26,8 @@ KV = """
 	text_color: (1, 1, 1, 1)
 	md_bg_color: (0, 0, 0, 1)
 	size_hint_x: 1
+	# _md_bg_color_down: (0, 0, 0, 1)
+	# _radius: '10dp'
 
 
 <Container>:
@@ -61,7 +59,7 @@ KV = """
 			NonPressButton:
 				id: fontSpinner
 				on_text: root.fontChanged()
-				on_release: MDDropdownMenu(items=app.fonts, width_mult=3).open(self)
+				on_press: MDDropdownMenu(items=app.fonts, width_mult=3).open(self)
 
 			NonPressButton:
 				id: reloadBtn
@@ -133,19 +131,19 @@ KV = """
 			id: instSpinner
 			size_hint_y: 0.073
 			on_text: root.instChanged()
-			on_release: MDDropdownMenu(items=app.insts, width_mult=3).open(self)
+			on_press: MDDropdownMenu(items=app.insts, width_mult=3).open(self)
 
 		NonPressButton:
 			id: courseSpinner
 			size_hint_y: 0.073
 			on_text: root.courseChanged()
-			on_release: MDDropdownMenu(items=root.courses, width_mult=3).open(self)
+			on_press: MDDropdownMenu(items=root.courses, width_mult=3).open(self)
 
 		NonPressButton:
 			id: groupSpinner
 			size_hint_y: 0.073
 			on_text: root.groupChanged()
-			on_release: MDDropdownMenu(items=root.groups, width_mult=3).open(self)
+			on_press: MDDropdownMenu(items=root.groups, width_mult=3).open(self)
 
 		GridLayout:
 			padding: [0, 100]
@@ -163,7 +161,7 @@ config = JsonHandler()
 
 
 class NonPressButton(BaseRectangularButton, BaseFlatButton):
-	# MDFlatButton но без анимации нажатия
+	# MDFlatButton но без BasePressedButton
 	pass
 
 
@@ -425,8 +423,8 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		if container.ids.reloadBtn.text == "Обновить":
-			container.pressed(container.ids.reloadBtn, start = True)
+		# if container.ids.reloadBtn.text == "Обновить":
+		# 	container.pressed(container.ids.reloadBtn, start = True)
 
 		return screen_manager
 
