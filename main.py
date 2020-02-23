@@ -26,10 +26,11 @@ KV = """
 #:import MDDropdownMenu kivymd.uix.menu.MDDropdownMenu
 #:import MDFlatButton kivymd.uix.button.MDFlatButton
 
-<MButton@MDFlatButton>
-	text_color: 1, 1, 1, 1
-	md_bg_color: 0, 0, 0, 1
-	font_size: '14sp'
+<NonPressButton>
+	text_color: (1, 1, 1, 1)
+	md_bg_color: (0, 0, 0, 1)
+	size_hint_x: 1
+
 
 <Container>:
 	name: 'container'
@@ -53,28 +54,17 @@ KV = """
 			NonPressButton:
 				id: gotoSettings
 				text: 'Дополнительно'
-				size_hint_x: 1
-				text_color: 1, 1, 1, 1
-				md_bg_color: 0, 0, 0, 1
-				font_size: '14sp'
 				on_release:
 					root.manager.current = 'settings'
 					root.manager.transition.direction = 'right'
 
-			MButton:
+			NonPressButton:
 				id: fontSpinner
-				size_hint_x: 1
-				text_color: 1, 1, 1, 1
-				md_bg_color: 0, 0, 0, 1
 				on_text: root.fontChanged()
 				on_release: MDDropdownMenu(items=app.fonts, width_mult=3).open(self)
 
 			NonPressButton:
 				id: reloadBtn
-				size_hint_x: 1
-				text_color: 1, 1, 1, 1
-				md_bg_color: 0, 0, 0, 1
-				font_size: '14sp'
 
 		GridLayout:
 			cols: 1
@@ -113,7 +103,6 @@ KV = """
 				id: errorLabel
 				text: ""
 				color: (1, 0.2, 0.2, 1)
-				font_size: '14sp'
 
 <Settings>:
 	name: 'settings'
@@ -132,11 +121,7 @@ KV = """
 
 		NonPressButton:
 			id: gotoContainer
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
-			font_size: '14sp'
 			size_hint_y: 0.073
-			size_hint_x: 1
 			text: 'Назад'
 
 			on_release:
@@ -144,30 +129,21 @@ KV = """
 				root.manager.current = 'container'
 				root.manager.transition.direction = 'left'
 
-		MButton:
+		NonPressButton:
 			id: instSpinner
 			size_hint_y: 0.073
-			size_hint_x: 1
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
 			on_text: root.instChanged()
 			on_release: MDDropdownMenu(items=app.insts, width_mult=3).open(self)
 
-		MButton:
+		NonPressButton:
 			id: courseSpinner
 			size_hint_y: 0.073
-			size_hint_x: 1
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
 			on_text: root.courseChanged()
 			on_release: MDDropdownMenu(items=root.courses, width_mult=3).open(self)
 
-		MButton:
+		NonPressButton:
 			id: groupSpinner
 			size_hint_y: 0.073
-			size_hint_x: 1
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
 			on_text: root.groupChanged()
 			on_release: MDDropdownMenu(items=root.groups, width_mult=3).open(self)
 
@@ -188,7 +164,7 @@ config = JsonHandler()
 
 class NonPressButton(BaseRectangularButton, BaseFlatButton):
 	# MDFlatButton но без анимации нажатия
-    pass
+	pass
 
 
 class Container(Screen):
@@ -449,8 +425,8 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		# if container.ids.reloadBtn.text == "Обновить":
-		# 	container.pressed(container.ids.reloadBtn, start = True)
+		if container.ids.reloadBtn.text == "Обновить":
+			container.pressed(container.ids.reloadBtn, start = True)
 
 		return screen_manager
 
