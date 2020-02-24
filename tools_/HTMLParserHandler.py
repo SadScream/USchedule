@@ -35,13 +35,14 @@ def get_institutes():
 
 	select = []
 
-	for a in soup.find_all("li"):
-		select.append(a.text)
+	for a in soup.find_all("option"):
+		if len(a.attrs['value']):
+			select.append(a.attrs['value'])
 
 	return select
 
 
-def get_groups(date):
+def get_groups(date, is_main = False):
 	'''
 	скрипт посложнее для получения списка курсов каждого института, а также списка групп каждого курса
 	'''
@@ -49,55 +50,80 @@ def get_groups(date):
 	institutes = get_institutes()
 
 	headers = {
-		"Accept": "*/*",
-		"Accept-Encoding": "gzip, deflate, br",
-		'Accept-Language': "ru,en;q=0.9",
+		"Host": "www.s-vfu.ru",
 		"Connection": "keep-alive",
 		"Content-Length": "58",
-		"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-		"Host": "www.s-vfu.ru",
+		"Accept": "*/*",
 		"Origin": "https://www.s-vfu.ru",
-		'Referer': "https://www.s-vfu.ru/raspisanie/",
+		"X-Requested-With": "XMLHttpRequest",
+		"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.136 YaBrowser/20.2.2.177 Yowser/2.5 Safari/537.36",
+		"DNT": "1",
+		"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+		"Sec-Fetch-Site": "same-origin",
 		"Sec-Fetch-Mode": "cors",
-		"Sec-Fetch-Site": 'same-origin',
-		"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 YaBrowser/19.12.0.358 Yowser/2.5 Safari/537.36",
-		"X-Requested-With": "XMLHttpRequest"
+		"Referer": "https://www.s-vfu.ru/raspisanie/",
+		"Accept-Encoding": "gzip, deflate, br",
+		"Accept-Language": "ru,en;q=0.9",
 	}
 
 	data = {}
+	soup_data = []
 
 	for inst in institutes:
 		u = f"action=showgroups&fac={quote(inst)}&mydate={date}" # для каждого института формируется отдельный запрос на список курсов и групп
-		data[inst] = []
 
 		request = requests.post(url='https://www.s-vfu.ru/raspisanie/ajax.php', headers=headers, data=u).content
 		soup = bs.BeautifulSoup(request, "html.parser")
 
-		for i, ort_group in enumerate(soup.find_all("optgroup")): # ortgroup - курсы
-			ort_splited = ort_group.attrs['label'].split(', ')[1] # убираем лишнюю часть из наименования курса
 
-			data[inst].append({ort_splited: []})
+		if is_main:
+			soup_data.append(f"{inst}\t{soup}\n\n")
 
-			for j, group in enumerate(ort_group.find_all("option")): # option - группы
 
-				if len(data[inst]):
-					'''
-					далее проверка, на случай, если в списке групп какого-то курса уместились все группы последующих курсов
-					случается из-за незакрытого тега
-					'''
+		# находим тег<select class="firsted" ... </select>
+		# он содержит в себе первым элементом <option selected="selected" value="">Выберите вашу группу</option>, который мы отсеиваем при дальнейшей итерации
+		# вторым элементом идет optgroup, который закрывается только в самом конце, а значит парсить в цикле будем его, т.к он содержит в себе все элементы
+		main_tag = soup.find_all()[0].find_all()
 
-					for k, v in data[inst][i-1].items():
-						if group.text in v:
-							key = [_ for _ in data[inst][i-1]][0]
 
-							for n, item in enumerate(v):
-								if item == group.text:
-									data[inst][i-1][key] = data[inst][i-1][key][:n]
-									break
+		if len(main_tag) < 2: # проверяем, не пуст ли селектор групп
+			continue
 
-				data[inst][i][ort_splited].append(group.text)
+		data[inst] = {}
 
+
+		# bs съедать первый первый optgroup, скорее всего содержащий текст "очная, 1 курс (Бакалавриат)", но это может быть не точно,
+		# поэтому находим его вручную, чтоб совесть была чиста
+		tag = main_tag[1].attrs['label'].split(', ')[1] 
+
+
+		data[inst][tag] = []
+
+		for item in main_tag[1].find_all():
+			if item.name == "optgroup":
+				tag = item.attrs['label'].split(', ')[1]
+				data[inst][tag] = []
+				continue
+
+			data[inst][tag].append(item.text)
+
+	if is_main:
+		with open("test.html", "r+", encoding="utf-8") as file:
+			# f = open("test.html", "r+")
+			# f.writelines()
+			file.writelines(soup_data)
+
+	sorting(data)
 	return data
+
+
+def sorting(data):
+	'''
+	TODO: сортировка по курсам: 1, 2, 3 (Бакалавриат), 1, 2, 3 (Магистры), 1, 2, 3 (Послевуз)
+	1 (Бакалавриат), 1 (Магистры), 1 (Послевуз), 2 (Бакалавриат) и тд.
+	'''
+
+	pass
 
 
 if __name__ == '__main__':
@@ -106,10 +132,12 @@ if __name__ == '__main__':
 
 	now = datetime.now()
 	date = now.strftime("%d-%m-%Y")
-	data = get_groups(date)
+	open("test.html", "w")
 
-	f = open("test.json", "r", encoding='utf-8')
-	print(data == json.loads(f.read()))
+	data = get_groups(date, True)
+
+	# f = open("test.json", "w+", encoding='utf-8')
+	# print(data == json.loads(f.read()))
 
 	with open("test.json", "w", encoding='utf-8') as file:
-		file.write(json.dumps(data, ensure_ascii=False, indent=4))
+		file.write(json.dumps(data, ensure_ascii=False))

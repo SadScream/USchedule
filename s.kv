@@ -1,10 +1,14 @@
 #:import MDDropdownMenu kivymd.uix.menu.MDDropdownMenu
 #:import MDFlatButton kivymd.uix.button.MDFlatButton
+#:import Animation kivy.animation.Animation
 
-<MButton@MDFlatButton>
-	text_color: 1, 1, 1, 1
-	md_bg_color: 0, 0, 0, 1
-	font_size: '14sp'
+<NewButton>
+	text_color: (1, 1, 1, 1)
+	md_bg_color: (0, 0, 0, 1)
+	size_hint_x: 1
+	# _md_bg_color_down: (0, 0, 0, 1)
+	# _radius: '10dp'
+
 
 <Container>:
 	name: 'container'
@@ -22,34 +26,26 @@
 		GridLayout:
 			cols: 3
 			size_hint_y: 0.057
-			padding: 1
+			padding: 2
 			spacing: dp(1)
 
-			NonPressButton:
+			NewButton:
 				id: gotoSettings
 				text: 'Дополнительно'
-				size_hint_x: 1
-				text_color: 1, 1, 1, 1
-				md_bg_color: 0, 0, 0, 1
-				font_size: '14sp'
 				on_release:
 					root.manager.current = 'settings'
 					root.manager.transition.direction = 'right'
 
-			MButton:
+			NewButton:
 				id: fontSpinner
-				size_hint_x: 1
-				text_color: 1, 1, 1, 1
-				md_bg_color: 0, 0, 0, 1
 				on_text: root.fontChanged()
-				on_release: MDDropdownMenu(items=app.fonts, width_mult=3).open(self)
+				on_press: Animation().stop_all(self)
+				on_release: app.openMenu(self, root.fonts)
 
-			NonPressButton:
+			NewButton:
 				id: reloadBtn
-				size_hint_x: 1
-				text_color: 1, 1, 1, 1
-				md_bg_color: 0, 0, 0, 1
-				font_size: '14sp'
+				# on_press: Animation().stop_all(self)
+				on_release: root.pressed(self)
 
 		GridLayout:
 			cols: 1
@@ -77,11 +73,19 @@
 			anchor_y: 'bottom'
 			size_hint_y: 0
 
+			canvas:
+				Color:
+					rgba: 0.3, 0.3, 0.3, 1
+				Rectangle:
+					size: self.size
+					pos: self.pos
+
 			Label:
 				id: errorLabel
 				text: ""
 				color: (1, 0.2, 0.2, 1)
-				font_size: '14sp'
+
+
 
 <Settings>:
 	name: 'settings'
@@ -93,18 +97,21 @@
 			size: self.size
 			pos: self.pos
 
-	BoxLayout:
-		orientation: 'vertical'
+	# BoxLayout:
+	# 	orientation: 'vertical'
+	# 	padding: 2
+	# 	spacing: "2dp"
+
+	GridLayout:
+		rows: 7
+		cols: 1
+		# size_hint_y: 0.073
 		padding: 2
 		spacing: "2dp"
 
-		NonPressButton:
+		NewButton:
 			id: gotoContainer
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
-			font_size: '14sp'
-			size_hint_y: 0.073
-			size_hint_x: 1
+			# size_hint_y: 0.073
 			text: 'Назад'
 
 			on_release:
@@ -112,32 +119,69 @@
 				root.manager.current = 'container'
 				root.manager.transition.direction = 'left'
 
-		MButton:
+		NewButton:
 			id: instSpinner
-			size_hint_y: 0.073
-			size_hint_x: 1
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
+			# size_hint_y: 0.073
 			on_text: root.instChanged()
-			on_release: MDDropdownMenu(items=app.insts, width_mult=3).open(self)
+			on_press: Animation().stop_all(self)
+			on_release: app.openMenu(self, root.insts)
 
-		MButton:
+		NewButton:
 			id: courseSpinner
-			size_hint_y: 0.073
-			size_hint_x: 1
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
+			# size_hint_y: 0.073
 			on_text: root.courseChanged()
-			on_release: MDDropdownMenu(items=root.courses, width_mult=3).open(self)
+			on_press: Animation().stop_all(self)
+			on_release: app.openMenu(self, root.courses)
 
-		MButton:
+		NewButton:
 			id: groupSpinner
-			size_hint_y: 0.073
-			size_hint_x: 1
-			text_color: 1, 1, 1, 1
-			md_bg_color: 0, 0, 0, 1
+			# size_hint_y: 0.073
 			on_text: root.groupChanged()
-			on_release: MDDropdownMenu(items=root.groups, width_mult=3).open(self)
+			on_press: Animation().stop_all(self)
+			on_release: app.openMenu(self, root.groups)
 
 		GridLayout:
-			padding: [0, 100]
+			rows: 1
+			cols: 1
+			padding: [0, 2]
+			size_hint_y: 0
+
+			MDLabel:
+				id: _label
+				markup: True
+				text: root.line
+				# height: 1
+
+		BoxLayout:
+			orientation: 'vertical'
+			size_hint_y: 0
+
+			GridLayout:
+				rows: 2
+				cols: 1
+				spacing: "2dp"
+				padding: [0, 5]
+
+				NewButton:
+					id: nextWeekButton
+					# size_hint_y: 0.073
+					text: "Следующая неделя"
+					on_press: Animation().stop_all(self)
+					on_release:
+						root.gotoPressed(next_week=7)
+						root.manager.current = 'container'
+						root.manager.transition.direction = 'left'
+
+				NewButton:
+					id: currentWeek
+					# size_hint_y: 0.073
+					text: "Текущая неделя"
+					on_press: Animation().stop_all(self)
+					disabled: True
+					on_release:
+						root.gotoPressed(current_week = True)
+						root.manager.current = 'container'
+						root.manager.transition.direction = 'left'
+
+	GridLayout:
+		padding: [0, 100]
