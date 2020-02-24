@@ -16,6 +16,10 @@ class Container(Screen):
 	def __init__(self, screen_manager, **kwargs):
 		self.screen_manager = screen_manager
 
+		# переменная для запоминания того, что была нажата кнопка "Следующая неделя"
+		# необходимо, чтобы когда пользователь нажимал "Обновить расписание" выходило все также расписание за следующую неделю, а не текущую
+		self._next_week = False
+
 		# содержимое скроллера шрифтов
 		fonts_tuple = config.read("fonts")
 
@@ -39,7 +43,16 @@ class Container(Screen):
 		self.turn(0)
 		self.ids.scrollArea.scroll_y = 1	
 		self.ids.scrollArea.do_scroll = False
+
+		if next_week:
+			self._next_week = True
+
+		if self._next_week:
+			next_week = 7
+		
 		self.thread = Thread(target=self.generateTable, args=(instance, start, next_week))
+
+
 		self.thread.start()
 
 	def showError(self, text, layout, label):
@@ -201,11 +214,13 @@ class Settings(Screen):
 			if current_week == True:
 				self.ids.currentWeek.disabled = True
 				self.ids.nextWeekButton.disabled = False
+				self.screen_manager.screens[0]._next_week = False
 				return self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn)
 
 			if self.screen_manager.screens[0].ids.reloadBtn.text == "Получить":
 				self.ids.currentWeek.disabled = True
 				self.ids.nextWeekButton.disabled = False
+				self.screen_manager.screens[0]._next_week = False
 				self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn)
 		elif next_week:
 			self.ids.nextWeekButton.disabled = True

@@ -174,9 +174,9 @@ KV = """
 
 			canvas:
 				Color:
-					rgba: 0, 0, 0, 1
+					rgba: 0.06, 0.06, 0.06, 1
 				Rectangle:
-					size: (self.width, 1)
+					size: (self.width, 2)
 					pos: (self.pos[0], self.pos[1]-3)
 
 		BoxLayout:
@@ -267,8 +267,8 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		# if container.ids.reloadBtn.text == "Обновить":
-		# 	container.pressed(container.ids.reloadBtn, start = True)
+		if container.ids.reloadBtn.text == "Обновить":
+			container.pressed(container.ids.reloadBtn, start = True)
 
 		return screen_manager
 
