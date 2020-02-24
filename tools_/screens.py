@@ -164,7 +164,7 @@ class Settings(Screen):
 		self.screen_manager = screen_manager
 		self.courses = []
 		self.groups = []
-		self.line = f"[size=15][s]\n{' '*round(self.width/1.125)}\n[/s][/size]"
+		# self.line = f"[size=13][s]\n{'  '*round(self.width/2)}\n[/s][/size]"
 
 		# содержимое скроллера институтов
 		insts_tuple = tuple(DB.keys())

@@ -169,14 +169,15 @@ KV = """
 		GridLayout:
 			rows: 1
 			cols: 1
-			padding: [0, 2]
+			# padding: [0, 3]
 			size_hint_y: 0
 
-			MDLabel:
-				id: _label
-				markup: True
-				text: root.line
-				# height: 1
+			canvas:
+				Color:
+					rgba: 0, 0, 0, 1
+				Rectangle:
+					size: (self.width, 1)
+					pos: (self.pos[0], self.pos[1]-3)
 
 		BoxLayout:
 			orientation: 'vertical'
@@ -266,8 +267,8 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		if container.ids.reloadBtn.text == "Обновить":
-			container.pressed(container.ids.reloadBtn, start = True)
+		# if container.ids.reloadBtn.text == "Обновить":
+		# 	container.pressed(container.ids.reloadBtn, start = True)
 
 		return screen_manager
 
