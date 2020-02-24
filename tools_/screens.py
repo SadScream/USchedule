@@ -201,6 +201,7 @@ class Settings(Screen):
 			if current_week == True:
 				self.ids.currentWeek.disabled = True
 				self.ids.nextWeekButton.disabled = False
+				return self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn)
 
 			if self.screen_manager.screens[0].ids.reloadBtn.text == "Получить":
 				self.ids.currentWeek.disabled = True
