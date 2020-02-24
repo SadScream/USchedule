@@ -1,280 +1,206 @@
-# -*- coding: utf-8 -*-
-
-from kivymd.app import MDApp
-from kivy.lang import Builder
-from kivy.uix.screenmanager import ScreenManager, NoTransition
-
-# from kivy.utils import get_color_from_hex
-# from kivymd.color_definitions import colors
-
-from tools_.JsonHandler import JsonHandler
-from tools_.newMenu import NewMenu
-from tools_.kivy_cfg.Config import *
-from tools_.newButton import NewButton
-from tools_.screens import Container, Settings
-from kivymd.theming import ThemeManager
+import sys
+from json import dumps
+from requests import get
+from datetime import datetime
+from bs4 import BeautifulSoup
+from xlrd import open_workbook
+from re import sub
 
 
 '''
-TODO:
-	Расписание сессии(возможно когда-нибудь лет так через 100)
-	Контакты
-	Обновление базы институтов
+
+todo: import asyncio
+
 '''
 
 
-KV = """
-#:import MDDropdownMenu kivymd.uix.menu.MDDropdownMenu
-#:import MDFlatButton kivymd.uix.button.MDFlatButton
-#:import Animation kivy.animation.Animation
-
-<NewButton>
-	text_color: (1, 1, 1, 1)
-	md_bg_color: (0, 0, 0, 1)
-	size_hint_x: 1
-	# _md_bg_color_down: (0, 0, 0, 1)
-	# _radius: '10dp'
+url = "https://www.s-vfu.ru/universitet/rukovodstvo-i-struktura/instituty/imi/uchebnyy-protsess/"
 
 
-<Container>:
-	name: 'container'
+class Document:
 
-	canvas:
-		Color:
-			rgba: 0.7411764705882353, 0.7411764705882353, 0.7411764705882353, 1
-		Rectangle:
-			size: self.size
-			pos: self.pos
+	def __init__(self):
+		self.url = url
+		self.get_group()
+		# soup = self.open_soup()
+		# content = self.content_searcher(soup)
+		# print(content)
+		self.file = self.get_document()
 
-	GridLayout:
-		rows: 3
+	def get_group(self):
+		self.sheet_name = "1 курс_ИТ" # наименование рабочей страницы строго как в эксель файле
+		self.group = "ивт-19-3" # название рассматриваемой группы как в эксель файле(кол-во студентов указывать не нужно), однако капсом или нет - неважно
+		self.column=14 # дефолт
 
-		GridLayout:
-			cols: 3
-			size_hint_y: 0.057
-			padding: 2
-			spacing: dp(1)
+	def open_soup(self):
+		response = get(self.url).content
+		soup = BeautifulSoup(response, 'lxml')
+		return soup
 
-			NewButton:
-				id: gotoSettings
-				text: 'Дополнительно'
-				on_release:
-					root.manager.current = 'settings'
-					root.manager.transition.direction = 'right'
+	def content_searcher(self, soup):
+		content = soup.find("div", id="content")
+		for a in content.find_all("a"):
+			print(a.text)
+			if "Расписание ИМИ" in a.text:
+				return "https://www.s-vfu.ru"+a.get('href')
 
-			NewButton:
-				id: fontSpinner
-				on_text: root.fontChanged()
-				on_press: Animation().stop_all(self)
-				on_release: app.openMenu(self, root.fonts)
+	def get_document(self, url = None):
+		# r = get(url, stream=True)
+		path = "table.xls"
 
-			NewButton:
-				id: reloadBtn
-				# on_press: Animation().stop_all(self)
-				on_release: root.pressed(self)
+		# with open(path, "wb") as out:
+		# 	for chunk in r.iter_content(512):
+		# 		out.write(chunk)
 
-		GridLayout:
-			cols: 1
-			rows: 1
-			padding: [0, 5]
-
-			ScrollView:
-				id: scrollArea
-				scroll_timeout: 250
-				padding: [0, 1, 0, 0]
-
-				MDLabel:
-					id: rst
-					text_size: root.width, None
-					size_hint_y: None
-					background_color : 0, 0, 0, 0
-					text: ""
-					height: self.texture_size[1]
-					markup: True
-					on_text: root.scheduleChanged()
-
-		AnchorLayout:
-			id: errorLayout
-			anchor_x: 'center'
-			anchor_y: 'bottom'
-			size_hint_y: 0
-
-			canvas:
-				Color:
-					rgba: 0.3, 0.3, 0.3, 1
-				Rectangle:
-					size: self.size
-					pos: self.pos
-
-			Label:
-				id: errorLabel
-				text: ""
-				color: (1, 0.2, 0.2, 1)
+		return path
 
 
+class ParseDocument(Document):
 
-<Settings>:
-	name: 'settings'
+	def __init__(self):
+		super().__init__()
+		self.open_excel()
 
-	canvas:
-		Color:
-			rgba: 0.7411764705882353, 0.7411764705882353, 0.7411764705882353, 1
-		Rectangle:
-			size: self.size
-			pos: self.pos
+	def open_excel(self):
+		now = datetime.now()
+		date = now.strftime("%d-%m-%Y")
+		week_dig = 1+int(now.strftime("%U")) # порядковый номер недели для проверки четности
+		week_t = None
 
-	# BoxLayout:
-	# 	orientation: 'vertical'
-	# 	padding: 2
-	# 	spacing: "2dp"
-
-	GridLayout:
-		rows: 7
-		cols: 1
-		# size_hint_y: 0.073
-		padding: 2
-		spacing: "2dp"
-
-		NewButton:
-			id: gotoContainer
-			# size_hint_y: 0.073
-			text: 'Назад'
-
-			on_release:
-				root.gotoPressed()
-				root.manager.current = 'container'
-				root.manager.transition.direction = 'left'
-
-		NewButton:
-			id: instSpinner
-			# size_hint_y: 0.073
-			on_text: root.instChanged()
-			on_press: Animation().stop_all(self)
-			on_release: app.openMenu(self, root.insts)
-
-		NewButton:
-			id: courseSpinner
-			# size_hint_y: 0.073
-			on_text: root.courseChanged()
-			on_press: Animation().stop_all(self)
-			on_release: app.openMenu(self, root.courses)
-
-		NewButton:
-			id: groupSpinner
-			# size_hint_y: 0.073
-			on_text: root.groupChanged()
-			on_press: Animation().stop_all(self)
-			on_release: app.openMenu(self, root.groups)
-
-		GridLayout:
-			rows: 1
-			cols: 1
-			padding: [0, 2]
-			size_hint_y: 0
-
-			MDLabel:
-				id: _label
-				markup: True
-				text: root.line
-				# height: 1
-
-		BoxLayout:
-			orientation: 'vertical'
-			size_hint_y: 0
-
-			GridLayout:
-				rows: 2
-				cols: 1
-				spacing: "2dp"
-				padding: [0, 5]
-
-				NewButton:
-					id: nextWeekButton
-					# size_hint_y: 0.073
-					text: "Следующая неделя"
-					on_press: Animation().stop_all(self)
-					on_release:
-						root.gotoPressed(next_week=7)
-						root.manager.current = 'container'
-						root.manager.transition.direction = 'left'
-
-				NewButton:
-					id: currentWeek
-					# size_hint_y: 0.073
-					text: "Текущая неделя"
-					on_press: Animation().stop_all(self)
-					disabled: True
-					on_release:
-						root.gotoPressed(current_week = True)
-						root.manager.current = 'container'
-						root.manager.transition.direction = 'left'
-
-	GridLayout:
-		padding: [0, 100]
-"""
-
-
-class ScheduleApp(MDApp):
-
-	def __init__(self, **kwargs):
-		# self.theme_cls.theme_style = "Light"
-
-		self.theme_cls.primary_palette = "Gray"
-
-		'''
-		'Red' 'Pink' 'Purple' 'DeepPurple' 'Indigo' 'Blue' 
-		'LightBlue' 'Cyan' 'Teal' 'Green' 'LightGreen' 'Lime' 
-		'Yellow' 'Amber' 'Orange' 'DeepOrange' 'Brown' 'Gray' 'BlueGray'
-		'''
-
-		super().__init__(**kwargs)
-
-	def openMenu(self, target_widget, items):
-		# костыль для открытия оптимизорованной дропдаун менюшки
-
-		widget = NewMenu(items=items, width_mult=3)
-		widget.open(target_widget)
-
-	def build(self):
-		Builder.load_string(KV)
-		screen_manager.add_widget(Container(screen_manager=screen_manager))
-		screen_manager.add_widget(Settings(DB = DB, screen_manager=screen_manager))
-		container = screen_manager.screens[0]
-		settings = screen_manager.screens[1]
-
-		# получение последних значений селекторов, шрифта и расписания
-		currentInst = config.read("currentInst")
-		currentCourse = config.read("currentCourse")
-		currentGroup = config.read("currentGroup")
-		currentFont = config.read("currentFont")
-		lastSchedule = config.read("schedule") # последнее расписание. пусто, если еще не запускалось
-
-		# текущий размер шрифта
-		if currentFont == "font":
-			container.callback_for_font_items("15 шрифт")
-		else:	
-			container.ids.fontSpinner.text = currentFont
-
-		# текст кнопок
-		container.ids.rst.text = lastSchedule
-		container.ids.reloadBtn.text = "Получить" if container.ids.rst.text == "" else "Обновить"
-
-		if not len(currentInst):
-			settings.ids.instSpinner.text = [_ for _ in DB.keys()][0]
+		if week_dig % 2 == 0:
+			week_t = "Четная"
 		else:
-			settings.ids.instSpinner.text = currentInst
-			settings.ids.courseSpinner.text = currentCourse
-			settings.ids.groupSpinner.text = currentGroup
+			week_t = "Нечетная"
 
-		if container.ids.reloadBtn.text == "Обновить":
-			container.pressed(container.ids.reloadBtn, start = True)
+		sheet_name = self.sheet_name
+		group = self.group
+		column= self.column
 
-		return screen_manager
+		rb = open_workbook(self.file, formatting_info=True)
+		sheet = rb.sheet_by_name(sheet_name)
+
+		for col in range(sheet.ncols):
+			if group in sheet.cell_value(2,col).lower():
+				column = col # запоминаем местоположение столбца нашей группы
+
+		days = []
+		d = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
+		tbl = {
+			f'{date}. Неделя': f'{week_t}',
+			'Расписание для': f'{sheet_name} {sheet.cell_value(2,column)}',
+			'Понедельник': [],
+			'Вторник': [],
+			'Среда': [],
+			'Четверг': [],
+			'Пятница': [],
+			'Суббота': []
+		}
+
+		for row in range(3, sheet.nrows):
+			'''
+			первая строка каждого нового дня содержит имя недели, а остальные строки - пусты
+			например
+			1 понедельник    матеша
+			2                физра
+			3                информатика
+			4 вторник        химия
+			5                биология
+			...
+			поэтому, итерируя каждую строку, мы прежде всего проверяем, не новый ли это день
+			а если так, то запоминаем его
+			'''
+
+			if len(sheet.cell_value(row,0)):
+				for item in d:
+					if item in sheet.cell_value(row,0).lower():
+						days.append(item)
+
+			time = sheet.cell_value(row,1).strip().replace("--", "-") # время
+			subject = sheet.cell_value(row,column) # предмет
+			kind = sheet.cell_value(row,column+1 ) # тип занятия(лек., пр., лаб.)
+			audience = "" # аудитория
+
+			for i in range(2, column-1): # ищем номер аудитории
+				p = sheet.cell_value(row,column+i)
+
+				if isinstance(p, float):
+					audience = str(p).split(".")[0]
+					break
+				elif "".join(str(p).split(" ")).isdigit():
+					audience = p
+					break
+				elif not "".join(str(p).split(" ")).isdigit():
+					continue
+
+			if not(len(subject)):
+				'''
+				иногда предмет охватывает несколько ячеек и его названия нет в колонке column
+				тут мы вроде ищем его название в соседних ячейках, хотя я сам забыл уже и вообще спать хочу
+				'''
+				if len(sheet.cell_value(row,column+1)):
+					for i in range(1, sheet.ncols):
+						if len(sheet.cell_value(row,column-i)):
+							subject = sheet.cell_value(row,column-i)
+							break
+
+				elif not any(_.split('.')[0].isdigit() for _ in str(sheet.cell_value(row,column-1)).split(" ")):
+					for i in range(1, column-1):
+						iCell = sheet.cell_value(row,column-i) 
+
+						if not isinstance(iCell, float):
+							if not "".join(str(iCell).split(" ")).isdigit():
+								if len(iCell):
+									subject = iCell
+									break
+							else:
+								break
+						else:
+							break
+
+			subject = sub(r' +', ' ', str(subject)).strip().replace("\n", " ") # убираем дебильные пробелы
+			audience = sub(r' +', ' ', str(audience)).strip().replace("\n", " ")
+
+			if subject == "":
+				tbl[days[-1].title()].append(f"{time} -" if len(time) else "-")
+				continue
+
+			elif "физич" in ''.join(subject.lower().split(' ')): # заменяем Ф И З И Ч Е С К А Я... на нормальное написание
+				subject = "Физ. культура"
+				tbl[days[-1].title()].append(f"{time} {subject}")
+				continue
+
+			elif "исто" in ''.join(subject.lower().split(' ')):
+				if "яковлев" in subject.lower():
+					subject = "История Яковлел А.И."
+
+			elif "дв2" in subject.lower():
+				subject = "Якутский язык"
+
+			elif any(_ in subject.lower() for _ in ['дв', 'культура']):
+				subject = "Культура и традиции"
+
+			tbl[days[-1].title()].append(f"{time} {subject}   Ауд. {audience} {kind}")
+
+		j = 0
+		with open("table.txt", "w", encoding='utf-8') as file:
+			for k, v in tbl.items():
+				if j > 1:
+					file.write(f"{k}:\n")	
+					for i, item in enumerate(v):
+						if i == len(v)-1:
+							file.write(f"\t{item}\n\n")
+						else:
+							file.write(f"\t{item}\n")
+				elif j == 0:
+					file.write(f"{k}: {v}\n")
+				elif j == 1:
+					file.write(f"{k}: {v.replace('_', ' ')}\n\n")
+				j+=1
+
+		with open("table.json", "w+", encoding="utf-8") as file:
+			file.write(dumps(tbl, ensure_ascii=False, indent=4))
+
+
 
 if __name__ == '__main__':
-	config = JsonHandler() # creating and init app config
-	DB = config.read("database")
-	transition = NoTransition()
-	# trans.duration = 0.1
-	screen_manager = ScreenManager(transition=transition)
-	ScheduleApp().run()
+	ParseDocument()
