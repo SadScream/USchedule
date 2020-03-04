@@ -13,6 +13,7 @@ from tools_.kivy_cfg.Config import *
 from tools_.newButton import NewButton
 from tools_.screens import Container, Settings
 from kivymd.theming import ThemeManager
+from time import sleep as sleep_
 
 
 '''
@@ -239,6 +240,7 @@ class ScheduleApp(MDApp):
 
 	def on_start(self):
 		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
+			sleep_(1)
 			screen_manager.screens[0].pressed(screen_manager.screens[0].ids.reloadBtn, on_start_ = True)
 
 	def build(self):
