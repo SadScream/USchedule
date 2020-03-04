@@ -239,14 +239,14 @@ class ScheduleApp(MDApp):
 		widget = NewMenu(items=items, width_mult=3)
 		widget.open(target_widget)
 
-	def wait_for_start(self):
-		while True:
-			if EventLoop.status == "started":
-				sleep_(0.05) # даем прогрузиться
-				screen_manager.screens[0].pressed(screen_manager.screens[0].ids.reloadBtn, on_start_ = True)
-				break
-			else:
-				continue
+	# def wait_for_start(self):
+	# 	while True:
+	# 		if EventLoop.status == "started":
+	# 			screen_manager.current = "Settings"
+	# 			screen_manager.screens[1].gotoPressed(current_week = True)
+	# 			break
+	# 		else:
+	# 			continue
 
 	def build(self):
 		Builder.load_string(KV)
@@ -281,8 +281,10 @@ class ScheduleApp(MDApp):
 			settings.ids.groupSpinner.text = currentGroup
 
 		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
-			thread = Thread(target = self.wait_for_start)
-			thread.start()
+			screen_manager.current = "settings"
+			screen_manager.screens[1].ids.currentWeek.dispatch('on_release')
+			# thread = Thread(target = self.wait_for_start)
+			# thread.start()
 
 		return screen_manager
 
