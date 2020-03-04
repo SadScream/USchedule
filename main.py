@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from kivymd.app import MDApp
+from kivy.base import EventLoop
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 
@@ -13,8 +14,9 @@ from tools_.kivy_cfg.Config import *
 from tools_.newButton import NewButton
 from tools_.screens import Container, Settings
 from kivymd.theming import ThemeManager
-from time import sleep as sleep_
 
+from time import sleep as sleep_
+from threading import Thread
 
 '''
 TODO:
@@ -231,22 +233,26 @@ class ScheduleApp(MDApp):
 
 		super().__init__(**kwargs)
 
-
 	def openMenu(self, target_widget, items):
 		# костыль для открытия оптимизорованной дропдаун менюшки
 
 		widget = NewMenu(items=items, width_mult=3)
 		widget.open(target_widget)
 
-	def on_start(self):
-		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
-			sleep_(1)
-			screen_manager.screens[0].pressed(screen_manager.screens[0].ids.reloadBtn, on_start_ = True)
+	def wait_for_start(self):
+		while True:
+			if EventLoop.status == "started":
+				sleep_(0.05) # даем прогрузиться
+				screen_manager.screens[0].pressed(screen_manager.screens[0].ids.reloadBtn, on_start_ = True)
+				break
+			else:
+				continue
 
 	def build(self):
 		Builder.load_string(KV)
 		screen_manager.add_widget(Container(screen_manager=screen_manager))
 		screen_manager.add_widget(Settings(DB=DB, screen_manager=screen_manager))
+
 		container = screen_manager.screens[0]
 		settings = screen_manager.screens[1]
 
@@ -273,6 +279,10 @@ class ScheduleApp(MDApp):
 			settings.ids.instSpinner.text = currentInst
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
+
+		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
+			thread = Thread(target = self.wait_for_start)
+			thread.start()
 
 		return screen_manager
 

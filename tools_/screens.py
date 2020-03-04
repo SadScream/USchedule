@@ -30,7 +30,6 @@ class Container(Screen):
 			"callback": self.callback_for_font_items
 			} for i in range(len(fonts_tuple))
 		]
-
 		super().__init__(**kwargs)
 
 	def callback_for_font_items(self, *args):
@@ -79,7 +78,7 @@ class Container(Screen):
 		self.ids.scrollArea.do_scroll = True
 		return
 
-	def generateTable(self, instance=None, on_start=False, next_week=False):
+	def generateTable(self, instance=None, on_start_=False, next_week=False):
 		'''
 		формирование таблицы расписания
 		'''
@@ -103,11 +102,12 @@ class Container(Screen):
 
 			self.turn(1)
 
-			if not on_start:
+			if not on_start_:
 				self.thread = Thread(target=self.showError, args=("Ошибка соединения", self.ids.errorLayout, self.ids.errorLabel))
 				self.thread.start()
 			else:
-				self.scrollArea.do_scroll = True
+				print("screens.py -> generateTable -> not table")
+				self.ids.scrollArea.do_scroll = True
 			
 			instance.text = last_state_text
 			return False
