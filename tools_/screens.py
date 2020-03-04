@@ -36,7 +36,7 @@ class Container(Screen):
 	def callback_for_font_items(self, *args):
 		self.ids.fontSpinner.text = args[0]
 
-	def pressed(self, instance, start = False, next_week = False):
+	def pressed(self, instance, on_start_ = False, next_week = False):
 		'''
 		реакция на нажатие кнопки обновления/получения расписания
 		'''
@@ -49,13 +49,14 @@ class Container(Screen):
 
 		if self._next_week:
 			next_week = 7
-		
-		self.thread = Thread(target=self.generateTable, args=(instance, start, next_week))
 
-
+		self.thread = Thread(target=self.generateTable, args=(instance, on_start_, next_week))
 		self.thread.start()
 
 	def showError(self, text, layout, label):
+		'''
+		плавный вывод таблички 'Connection error'
+		'''
 		i = 0.0
 		while True:
 			if i > 0.03:
@@ -78,7 +79,7 @@ class Container(Screen):
 		self.ids.scrollArea.do_scroll = True
 		return
 
-	def generateTable(self, instance=None, start=False, next_week=False):
+	def generateTable(self, instance=None, on_start=False, next_week=False):
 		'''
 		формирование таблицы расписания
 		'''
@@ -102,7 +103,7 @@ class Container(Screen):
 
 			self.turn(1)
 
-			if not start:
+			if not on_start:
 				self.thread = Thread(target=self.showError, args=("Ошибка соединения", self.ids.errorLayout, self.ids.errorLabel))
 				self.thread.start()
 			else:
@@ -135,11 +136,10 @@ class Container(Screen):
 		if self.ids.rst.text != text:
 			self.ids.rst.text = ' '
 			self.ids.rst.text = text
-
-		self.ids.scrollArea.do_scroll = True
 		
 		config.write("groupJson", table["DAT"])
 		instance.text = "Обновить"
+		self.ids.scrollArea.do_scroll = True
 		self.turn(1)
 
 	def fontChanged(self):

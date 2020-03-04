@@ -230,16 +230,21 @@ class ScheduleApp(MDApp):
 
 		super().__init__(**kwargs)
 
+
 	def openMenu(self, target_widget, items):
 		# костыль для открытия оптимизорованной дропдаун менюшки
 
 		widget = NewMenu(items=items, width_mult=3)
 		widget.open(target_widget)
 
+	def on_start(self):
+		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
+			screen_manager.screens[0].pressed(screen_manager.screens[0].ids.reloadBtn, on_start_ = True)
+
 	def build(self):
 		Builder.load_string(KV)
 		screen_manager.add_widget(Container(screen_manager=screen_manager))
-		screen_manager.add_widget(Settings(DB = DB, screen_manager=screen_manager))
+		screen_manager.add_widget(Settings(DB=DB, screen_manager=screen_manager))
 		container = screen_manager.screens[0]
 		settings = screen_manager.screens[1]
 
@@ -266,9 +271,6 @@ class ScheduleApp(MDApp):
 			settings.ids.instSpinner.text = currentInst
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
-
-		if container.ids.reloadBtn.text == "Обновить":
-			container.pressed(container.ids.reloadBtn, start = True)
 
 		return screen_manager
 
