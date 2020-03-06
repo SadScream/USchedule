@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+
 from kivy.uix.screenmanager import Screen
 from threading import Thread
 from time import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
 from tools_.scheduleParser import Document
 from tools_.JsonHandler import JsonHandler
 
@@ -14,6 +16,10 @@ class Container(Screen):
 	def __init__(self, screen_manager, **kwargs):
 		self.screen_manager = screen_manager
 
+		# переменная для запоминания того, что была нажата кнопка "Следующая неделя"
+		# необходимо, чтобы когда пользователь нажимал "Обновить расписание" выходило все также расписание за следующую неделю, а не текущую
+		self._next_week = False
+
 		# содержимое скроллера шрифтов
 		fonts_tuple = config.read("fonts")
 
@@ -24,31 +30,37 @@ class Container(Screen):
 			"callback": self.callback_for_font_items
 			} for i in range(len(fonts_tuple))
 		]
-
 		super().__init__(**kwargs)
 
 	def callback_for_font_items(self, *args):
 		self.ids.fontSpinner.text = args[0]
 
-	def pressed(self, instance, start = False):
+	def pressed(self, instance, on_start_ = False, next_week = False):
 		'''
 		реакция на нажатие кнопки обновления/получения расписания
 		'''
-
 		self.turn(0)
 		self.ids.scrollArea.scroll_y = 1	
 		self.ids.scrollArea.do_scroll = False
-		self.thread = Thread(target=self.generateTable, args=(instance, start))
+
+		if next_week:
+			self._next_week = True
+
+		if self._next_week:
+			next_week = 7
+
+		self.thread = Thread(target=self.generateTable, args=(instance, on_start_, next_week))
 		self.thread.start()
 
 	def showError(self, text, layout, label):
+		'''
+		плавный вывод таблички 'Connection error'
+		'''
 		i = 0.0
-		
 		while True:
 			if i > 0.03:
 				label.text = text
 				break
-
 			i += 0.001
 			sleep(0.01)
 			layout.size_hint_y = i
@@ -59,7 +71,6 @@ class Container(Screen):
 		while True:
 			if i <= 0:
 				break
-
 			i -= 0.001
 			sleep(0.01)
 			layout.size_hint_y = i
@@ -67,31 +78,38 @@ class Container(Screen):
 		self.ids.scrollArea.do_scroll = True
 		return
 
-	def generateTable(self, instance=None, start=False):
+	def generateTable(self, instance=None, on_start_=False, next_week=False):
 		'''
 		формирование таблицы расписания
 		'''
 
 		last_state_text = instance.text # перед тем, как изменить на "Ожидайте", запоминаем, какая надпись была до
 		instance.text = "Ожидайте"
-		date = datetime.now().strftime("%d-%m-%Y")
+
+		if not next_week:
+			date = datetime.now().strftime("%d-%m-%Y")
+		else:
+			# timedelta(days=next_week) т.к next_week - целое число по умолчанию равное 7(см. kivy-разметку кнопки id:nextWeekButton)
+			_date = datetime.strptime(str(datetime.now() + timedelta(days=next_week)).split(" ")[0], "%Y-%m-%d")
+			date = _date.strftime("%d-%m-%Y")
+
 		group = self.screen_manager.screens[1].ids.groupSpinner.text
 
-		table = Document(group, date).complete() # получаем расписание в формате json
+		table = Document(group, date).complete() # получаем расписание в формате словаря
 
 		if not table:
 			# instance.text = "Обновить"
 
 			self.turn(1)
 
-			if not start:
+			if not on_start_:
 				self.thread = Thread(target=self.showError, args=("Ошибка соединения", self.ids.errorLayout, self.ids.errorLabel))
 				self.thread.start()
 			else:
-				self.scrollArea.do_scroll = True
+				print("screens.py -> generateTable -> not table")
+				self.ids.scrollArea.do_scroll = True
 			
 			instance.text = last_state_text
-
 			return False
 
 		if last_state_text == "Получить":
@@ -113,24 +131,21 @@ class Container(Screen):
 				for key, value in v.items():
 					if value == "":
 						value = "-"
-
 					text += f"{key}: {value}{line}"
 
 		if self.ids.rst.text != text:
 			self.ids.rst.text = ' '
 			self.ids.rst.text = text
-
-		self.ids.scrollArea.do_scroll = True
 		
 		config.write("groupJson", table["DAT"])
 		instance.text = "Обновить"
+		self.ids.scrollArea.do_scroll = True
 		self.turn(1)
 
 	def fontChanged(self):
 		'''
 		изменение размера шрифта
 		'''
-
 		config.write("currentFont", self.ids.fontSpinner.text)
 		self.ids.rst.font_size = int(self.ids.fontSpinner.text.replace(" шрифт", ""))
 
@@ -138,7 +153,6 @@ class Container(Screen):
 		'''
 		реакция на изменение текста лейбла расписания id:rst
 		'''
-
 		config.write("schedule", self.ids.rst.text)
 
 	def turn(self, state):
@@ -146,7 +160,6 @@ class Container(Screen):
 		state = False - disabled
 		state = True - enabled
 		'''
-
 		if not state:
 			self.ids.gotoSettings.disabled = True
 			self.ids.fontSpinner.disabled = True
@@ -164,6 +177,7 @@ class Settings(Screen):
 		self.screen_manager = screen_manager
 		self.courses = []
 		self.groups = []
+		# self.line = f"[size=13][s]\n{'  '*round(self.width/2)}\n[/s][/size]"
 
 		# содержимое скроллера институтов
 		insts_tuple = tuple(DB.keys())
@@ -189,31 +203,44 @@ class Settings(Screen):
 		elif obj == "groups":
 			self.ids.groupSpinner.text = text
 
-	def gotoPressed(self):
+	def gotoPressed(self, next_week = False, current_week = False):
 		'''
-		реакция на нажатие кнопки "Назад"
+		реакция на нажатие кнопок "Назад", "Следующая неделя", "Текущая неделя"
+		next_week - True если была нажата кнопка "Следующая неделя"
+		current_week - True если была нажата кнопка "Текущая неделя"
 		'''
 
-		if self.screen_manager.screens[0].ids.reloadBtn.text == "Получить":
-			self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn)
+		if not next_week:
+			if current_week == True:
+				self.ids.currentWeek.disabled = True
+				self.ids.nextWeekButton.disabled = False
+				self.screen_manager.screens[0]._next_week = False
+				return self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn)
+
+			if self.screen_manager.screens[0].ids.reloadBtn.text == "Получить":
+				self.ids.currentWeek.disabled = True
+				self.ids.nextWeekButton.disabled = False
+				self.screen_manager.screens[0]._next_week = False
+				self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn)
+		elif next_week:
+			self.ids.nextWeekButton.disabled = True
+			self.ids.currentWeek.disabled = False
+			self.screen_manager.screens[0].pressed(self.screen_manager.screens[0].ids.reloadBtn, next_week=next_week)
 
 	def instChanged(self):
 		'''
 		реакция на смену института
 		'''
-
 		currentInst = config.read("currentInst")
-
-		if currentInst == "":
-			config.write("currentInst", self.ids.instSpinner.text)
 
 		# получаем выбранный институт и заполняем заполняем скроллер курсов этого института
 		DB_courses = self.DB[self.ids.instSpinner.text]
 		courses = []
 
-		for item in DB_courses:
-			for k, v in item.items():
-				courses.append(k)
+		if currentInst == "":
+			config.write("currentInst", self.ids.instSpinner.text)
+
+		courses = [k for k, v in DB_courses.items()]
 
 		self.courses = [
 			{
@@ -231,9 +258,8 @@ class Settings(Screen):
 
 	def courseChanged(self):
 		'''
-		колбэк на смену курса
+		реакция на смену курса
 		'''
-
 		currentCourse = config.read("currentCourse")
 
 		if currentCourse == "":
@@ -243,32 +269,28 @@ class Settings(Screen):
 		DB_courses = self.DB[self.ids.instSpinner.text]
 		currentGroup = config.read("currentGroup")
 
-		for item in DB_courses:
-			for k, v in item.items():
-				if self.ids.courseSpinner.text == k:
-					groups = tuple(v)
+		groups = DB_courses[self.ids.courseSpinner.text]
 
-					self.groups = [
-						{
-						"viewclass": "MDMenuItem",
-						"text": groups[i],
-						"callback": lambda text: self.callback_for_items("groups", text)
-						} for i in range(len(groups))
-					]
+		self.groups = [
+			{
+			"viewclass": "MDMenuItem",
+			"text": groups[i],
+			"callback": lambda text: self.callback_for_items("groups", text)
+			} for i in range(len(groups))
+		]
 
-					if self.ids.groupSpinner.text != v[0]:
-						self.ids.groupSpinner.text = v[0]
-					else:
-						self.groupChanged()
-					
-					if currentGroup == "":
-						config.write("currentGroup", self.ids.groupSpinner.text)
+		if self.ids.groupSpinner.text != groups[0]:
+			self.ids.groupSpinner.text = groups[0]
+		else:
+			self.groupChanged()
+		
+		if currentGroup == "":
+			config.write("currentGroup", self.ids.groupSpinner.text)
 
 	def groupChanged(self):
 		'''
 		реакция на смену группы
 		'''
-
 		tableGroup = config.read("groupJson")
 
 		if len(tableGroup):
