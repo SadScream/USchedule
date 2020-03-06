@@ -13,6 +13,7 @@ class JsonHandler:
 					"currentCourse": "",
 					"currentGroup": "",
 					"currentFont": "font",
+					"updateOnStart": True,
 					"schedule": "",
 					"groupJson": "",
 					"database": database
@@ -35,7 +36,7 @@ class JsonHandler:
 
 		if field in data:
 
-			if "**default**" in value:
+			if not isinstance(value, bool) and "**default**" in value:
 				data[field] = self.default[field]
 
 			else:

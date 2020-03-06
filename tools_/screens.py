@@ -6,9 +6,21 @@ from time import sleep
 from datetime import datetime, timedelta
 from tools_.scheduleParser import Document
 from tools_.JsonHandler import JsonHandler
+from kivy.utils import get_color_from_hex
+
+from kivymd.uix.snackbar import Snackbar
 
 
 config = JsonHandler()
+
+
+class Snack(Snackbar):
+
+	def __init__(self, text, duration = 3, **kwargs):
+		self.text = text
+		self.duration = duration
+
+		super().__init__(**kwargs)
 
 
 class Container(Screen):
@@ -52,32 +64,6 @@ class Container(Screen):
 		self.thread = Thread(target=self.generateTable, args=(instance, on_start_, next_week))
 		self.thread.start()
 
-	def showError(self, text, layout, label):
-		'''
-		плавный вывод таблички 'Connection error'
-		'''
-		i = 0.0
-		while True:
-			if i > 0.03:
-				label.text = text
-				break
-			i += 0.001
-			sleep(0.01)
-			layout.size_hint_y = i
-		
-		sleep(3)
-		label.text = ""
-
-		while True:
-			if i <= 0:
-				break
-			i -= 0.001
-			sleep(0.01)
-			layout.size_hint_y = i
-		
-		self.ids.scrollArea.do_scroll = True
-		return
-
 	def generateTable(self, instance=None, on_start_=False, next_week=False):
 		'''
 		формирование таблицы расписания
@@ -100,16 +86,11 @@ class Container(Screen):
 		if not table:
 			# instance.text = "Обновить"
 
+			Snack("Ошибка соединения", 3).show()
 			self.turn(1)
-
-			if not on_start_:
-				self.thread = Thread(target=self.showError, args=("Ошибка соединения", self.ids.errorLayout, self.ids.errorLabel))
-				self.thread.start()
-			else:
-				print("screens.py -> generateTable -> not table")
-				self.ids.scrollArea.do_scroll = True
-			
+			self.ids.scrollArea.do_scroll = True
 			instance.text = last_state_text
+			
 			return False
 
 		if last_state_text == "Получить":
@@ -190,6 +171,13 @@ class Settings(Screen):
 		]
 
 		super().__init__(**args)
+
+	def updatorSwitcherActive(self, active):
+		'''
+		реакция на изменение состояния селектора id:updatorSwitcher
+		'''
+
+		config.write("updateOnStart", active)
 
 	def callback_for_items(self, obj, text):
 		'''

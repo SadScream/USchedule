@@ -3,6 +3,7 @@
 from kivymd.app import MDApp
 from kivy.base import EventLoop
 from kivy.lang import Builder
+from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 # from kivy.utils import get_color_from_hex
@@ -17,6 +18,7 @@ from kivymd.theming import ThemeManager
 
 from time import sleep as sleep_
 from threading import Thread
+    
 
 '''
 TODO:
@@ -31,12 +33,28 @@ KV = """
 #:import MDFlatButton kivymd.uix.button.MDFlatButton
 #:import Animation kivy.animation.Animation
 
+
 <NewButton>
 	text_color: (1, 1, 1, 1)
 	md_bg_color: (0, 0, 0, 1)
 	size_hint_x: 1
 	# _md_bg_color_down: (0, 0, 0, 1)
 	# _radius: '10dp'
+
+
+<LineLayout@GridLayout>
+	# orientation: 'vertical'
+	rows: 1
+	cols: 1
+	size_hint: (1, None)
+	height: 2
+
+	canvas:
+		Color:
+			rgba: 0.05, 0.05, 0.05, 1
+		Rectangle:
+			size: (self.width, 2)
+			pos: (self.pos[0], self.pos[1])
 
 
 <Container>:
@@ -115,32 +133,23 @@ KV = """
 				color: (1, 0.2, 0.2, 1)
 
 
-
 <Settings>:
 	name: 'settings'
 
 	canvas:
 		Color:
-			rgba: 0.7411764705882353, 0.7411764705882353, 0.7411764705882353, 1
+			rgba: 0.74, 0.74, 0.74, 1
 		Rectangle:
 			size: self.size
 			pos: self.pos
 
-	# BoxLayout:
-	# 	orientation: 'vertical'
-	# 	padding: 2
-	# 	spacing: "2dp"
-
-	GridLayout:
-		rows: 7
-		cols: 1
-		# size_hint_y: 0.073
+	StackLayout:
+		orientation: 'tb-lr'
 		padding: 2
 		spacing: "2dp"
 
 		NewButton:
 			id: gotoContainer
-			# size_hint_y: 0.073
 			text: 'Назад'
 
 			on_release:
@@ -150,71 +159,68 @@ KV = """
 
 		NewButton:
 			id: instSpinner
-			# size_hint_y: 0.073
 			on_text: root.instChanged()
 			on_press: Animation().stop_all(self)
 			on_release: app.openMenu(self, root.insts)
 
 		NewButton:
 			id: courseSpinner
-			# size_hint_y: 0.073
 			on_text: root.courseChanged()
 			on_press: Animation().stop_all(self)
 			on_release: app.openMenu(self, root.courses)
 
 		NewButton:
 			id: groupSpinner
-			# size_hint_y: 0.073
 			on_text: root.groupChanged()
 			on_press: Animation().stop_all(self)
 			on_release: app.openMenu(self, root.groups)
 
+
+		LineLayout:
+
+
+		NewButton:
+			id: nextWeekButton
+			text: "Следующая неделя"
+			on_press: Animation().stop_all(self)
+			on_release:
+				root.gotoPressed(next_week=7)
+				root.manager.current = 'container'
+				root.manager.transition.direction = 'left'
+
+		NewButton:
+			id: currentWeek
+			text: "Текущая неделя"
+			on_press: Animation().stop_all(self)
+			disabled: True
+			on_release:
+				root.gotoPressed(current_week = True)
+				root.manager.current = 'container'
+				root.manager.transition.direction = 'left'
+
+
+		LineLayout:
+
+
 		GridLayout:
 			rows: 1
-			cols: 1
-			# padding: [0, 3]
-			size_hint_y: 0
+			columns: 2
+			spacing: '3dp'
+			size_hint_y: 0.05
 
-			canvas:
-				Color:
-					rgba: 0.06, 0.06, 0.06, 1
-				Rectangle:
-					size: (self.width, 2)
-					pos: (self.pos[0], self.pos[1]-3)
+			MDLabel:
+				id: updatorSwitcherButton
+				text_size: '15sp'
+				text: "Обновлять при запуске"
 
-		BoxLayout:
-			orientation: 'vertical'
-			size_hint_y: 0
+			MDSwitch:
+				id: updatorSwitcher
+				size_hint_x: 0.15
+				width: dp(16)
+				on_active: root.updatorSwitcherActive(self.active)
 
-			GridLayout:
-				rows: 2
-				cols: 1
-				spacing: "2dp"
-				padding: [0, 5]
 
-				NewButton:
-					id: nextWeekButton
-					# size_hint_y: 0.073
-					text: "Следующая неделя"
-					on_press: Animation().stop_all(self)
-					on_release:
-						root.gotoPressed(next_week=7)
-						root.manager.current = 'container'
-						root.manager.transition.direction = 'left'
-
-				NewButton:
-					id: currentWeek
-					# size_hint_y: 0.073
-					text: "Текущая неделя"
-					on_press: Animation().stop_all(self)
-					disabled: True
-					on_release:
-						root.gotoPressed(current_week = True)
-						root.manager.current = 'container'
-						root.manager.transition.direction = 'left'
-
-	GridLayout:
-		padding: [0, 100]
+		LineLayout:
 """
 
 
@@ -252,7 +258,11 @@ class ScheduleApp(MDApp):
 		currentCourse = config.read("currentCourse")
 		currentGroup = config.read("currentGroup")
 		currentFont = config.read("currentFont")
+		updateOnStart = config.read("updateOnStart")
 		lastSchedule = config.read("schedule") # последнее расписание. пусто, если еще не запускалось
+
+		# значение селектора id:updatorSwitcher
+		settings.ids.updatorSwitcher.active = updateOnStart
 
 		# текущий размер шрифта
 		if currentFont == "font":
@@ -271,13 +281,14 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
+		if updateOnStart and screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
 			screen_manager.current = "settings"
 			screen_manager.screens[1].ids.currentWeek.dispatch('on_release')
 
 		return screen_manager
 
 if __name__ == '__main__':
+	# Clock.max_iteration = 100
 	config = JsonHandler() # creating and init app config
 	DB = config.read("database")
 	transition = NoTransition()
