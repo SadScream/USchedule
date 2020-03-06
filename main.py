@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from kivymd.app import MDApp
-from kivy.base import EventLoop
 from kivy.lang import Builder
-from kivy.clock import Clock
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 # from kivy.utils import get_color_from_hex
@@ -14,10 +12,6 @@ from tools_.newMenu import NewMenu
 from tools_.kivy_cfg.Config import *
 from tools_.newButton import NewButton
 from tools_.screens import Container, Settings
-from kivymd.theming import ThemeManager
-
-from time import sleep as sleep_
-from threading import Thread
     
 
 '''

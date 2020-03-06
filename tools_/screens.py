@@ -2,11 +2,9 @@
 
 from kivy.uix.screenmanager import Screen
 from threading import Thread
-from time import sleep
 from datetime import datetime, timedelta
 from tools_.scheduleParser import Document
 from tools_.JsonHandler import JsonHandler
-from kivy.utils import get_color_from_hex
 
 from kivymd.uix.snackbar import Snackbar
 
