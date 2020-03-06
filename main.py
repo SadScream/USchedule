@@ -239,15 +239,6 @@ class ScheduleApp(MDApp):
 		widget = NewMenu(items=items, width_mult=3)
 		widget.open(target_widget)
 
-	# def wait_for_start(self):
-	# 	while True:
-	# 		if EventLoop.status == "started":
-	# 			screen_manager.current = "Settings"
-	# 			screen_manager.screens[1].gotoPressed(current_week = True)
-	# 			break
-	# 		else:
-	# 			continue
-
 	def build(self):
 		Builder.load_string(KV)
 		screen_manager.add_widget(Container(screen_manager=screen_manager))
@@ -283,8 +274,6 @@ class ScheduleApp(MDApp):
 		if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
 			screen_manager.current = "settings"
 			screen_manager.screens[1].ids.currentWeek.dispatch('on_release')
-			# thread = Thread(target = self.wait_for_start)
-			# thread.start()
 
 		return screen_manager
 
