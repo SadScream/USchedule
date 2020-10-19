@@ -10,6 +10,7 @@ from kivymd.uix.snackbar import Snackbar
 
 
 config = JsonHandler()
+DAYS = ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье")
 
 
 class Snack(Snackbar):
@@ -56,8 +57,8 @@ class Container(Screen):
 		if next_week:
 			self._next_week = True
 
-		if self._next_week:
-			next_week = 7
+		# if self._next_week:
+		# 	next_week = 7
 
 		self.thread = Thread(target=self.generateTable, args=(instance, on_start_, next_week))
 		self.thread.start()
@@ -74,6 +75,7 @@ class Container(Screen):
 			date = datetime.now().strftime("%d-%m-%Y")
 		else:
 			# timedelta(days=next_week) т.к next_week - целое число по умолчанию равное 7(см. kivy-разметку кнопки id:nextWeekButton)
+
 			_date = datetime.strptime(str(datetime.now() + timedelta(days=next_week)).split(" ")[0], "%Y-%m-%d")
 			date = _date.strftime("%d-%m-%Y")
 
@@ -101,7 +103,9 @@ class Container(Screen):
 
 		for j, (k, v) in enumerate(table.items()):
 			if j == 0:
-				text += f"{v}\n\n"
+				text += f"{v}\n"
+				dt = datetime.strptime(date, "%d-%m-%Y")
+				text += f"День: {DAYS[dt.weekday()]}\n\n"
 
 			elif j > 0:
 				text += f"\n[b]{k}[/b]:{line}"
@@ -176,6 +180,13 @@ class Settings(Screen):
 		'''
 
 		config.write("updateOnStart", active)
+
+	def nextWeekSwitcherActive(self, active):
+		'''
+		реакция на изменение состояния селектора id:nextWeekSwitcher
+		'''
+
+		config.write("nextWeekOnHolyday", active)
 
 	def callback_for_items(self, obj, text):
 		'''

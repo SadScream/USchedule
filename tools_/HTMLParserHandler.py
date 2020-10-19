@@ -140,4 +140,4 @@ if __name__ == '__main__':
 	# print(data == json.loads(f.read()))
 
 	with open("test.json", "w", encoding='utf-8') as file:
-		file.write(json.dumps(data, ensure_ascii=False))
+		file.write(json.dumps(data, ensure_ascii=False, indent=4))

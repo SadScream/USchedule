@@ -12,7 +12,8 @@ from tools_.newMenu import NewMenu
 from tools_.kivy_cfg.Config import *
 from tools_.newButton import NewButton
 from tools_.screens import Container, Settings
-    
+
+from datetime import datetime
 
 '''
 TODO:
@@ -215,6 +216,27 @@ KV = """
 
 
 		LineLayout:
+
+
+		GridLayout:
+			rows: 1
+			columns: 2
+			spacing: '3dp'
+			size_hint_y: 0.06
+
+			MDLabel:
+				id: nextWeekOnHolyday
+				text_size: '15sp'
+				text: "В воскресенье показывать расписание на следующую неделю"
+
+			MDSwitch:
+				id: nextWeekSwitcher
+				size_hint_x: 0.15
+				width: dp(16)
+				on_active: root.nextWeekSwitcherActive(self.active)
+
+
+		LineLayout:
 """
 
 
@@ -253,10 +275,12 @@ class ScheduleApp(MDApp):
 		currentGroup = config.read("currentGroup")
 		currentFont = config.read("currentFont")
 		updateOnStart = config.read("updateOnStart")
+		nextWeekOnHolyday = config.read("nextWeekOnHolyday")
 		lastSchedule = config.read("schedule") # последнее расписание. пусто, если еще не запускалось
 
-		# значение селектора id:updatorSwitcher
+		# значение селекторов id:updatorSwitcher и id:nextWeekSwitcher
 		settings.ids.updatorSwitcher.active = updateOnStart
+		settings.ids.nextWeekSwitcher.active = nextWeekOnHolyday
 
 		# текущий размер шрифта
 		if currentFont == "font":
@@ -275,9 +299,17 @@ class ScheduleApp(MDApp):
 			settings.ids.courseSpinner.text = currentCourse
 			settings.ids.groupSpinner.text = currentGroup
 
-		if updateOnStart and screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
-			screen_manager.current = "settings"
-			screen_manager.screens[1].ids.currentWeek.dispatch('on_release')
+		dt = datetime.now()
+		# dt = datetime(2020, 10, 18, 0, 0, 0, 0)
+		isHolyday = (dt.weekday() == 6)
+
+		if not isHolyday:
+			if updateOnStart and screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
+				screen_manager.current = "settings"
+				screen_manager.screens[1].ids.currentWeek.dispatch('on_release')
+		else:
+			if screen_manager.screens[0].ids.reloadBtn.text == "Обновить":
+				screen_manager.screens[1].gotoPressed(next_week=1)
 
 		return screen_manager
 
