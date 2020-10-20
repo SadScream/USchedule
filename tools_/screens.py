@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from tools_.scheduleParser import Document
 from tools_.JsonHandler import JsonHandler
 from kivymd.uix.menu import MDDropdownMenu
-from kivymd.theming import ThemeManager
 
 from kivymd.uix.snackbar import Snackbar
 
@@ -199,8 +198,6 @@ class Settings(Screen):
                   		"bot_pad": "8dp",
                     } for i in range(len(insts_tuple))
                 ]
-
-		th = ThemeManager()
 		
 		self.inst_menu = MDDropdownMenu(
 					caller=self.screen_manager.screens[1].ids.instSpinner,
