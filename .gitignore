@@ -4,7 +4,9 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 #app config
-config.json
+*.json
+*.html
+*.bat
 
 #kivy
 *.kv

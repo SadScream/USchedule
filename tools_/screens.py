@@ -5,9 +5,18 @@ from threading import Thread
 from datetime import datetime, timedelta
 from tools_.scheduleParser import Document
 from tools_.JsonHandler import JsonHandler
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.theming import ThemeManager
 
 from kivymd.uix.snackbar import Snackbar
 
+from kivy.properties import (
+    ListProperty,
+    NumericProperty,
+    ObjectProperty,
+    OptionProperty,
+    StringProperty,
+)
 
 config = JsonHandler()
 DAYS = ("Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье")
@@ -24,27 +33,43 @@ class Snack(Snackbar):
 
 class Container(Screen):
 
-	def __init__(self, screen_manager, **kwargs):
+	def __init__(self, parent, screen_manager, **kwargs):
+		self.app = parent
 		self.screen_manager = screen_manager
 
 		# переменная для запоминания того, что была нажата кнопка "Следующая неделя"
 		# необходимо, чтобы когда пользователь нажимал "Обновить расписание" выходило все также расписание за следующую неделю, а не текущую
 		self._next_week = False
 
-		# содержимое скроллера шрифтов
+		super().__init__(**kwargs)
+	
+	def create_menus(self):
 		fonts_tuple = config.read("fonts")
 
-		self.fonts = [
+		fonts = [
 			{
-			"viewclass": "MDMenuItem",
-			"text": fonts_tuple[i],
-			"callback": self.callback_for_font_items
+				"viewclass": "MDMenuItem",
+				"text": fonts_tuple[i],
+				"height": "40dp",
+				"top_pad": "10dp",
+				"bot_pad": "8dp",
 			} for i in range(len(fonts_tuple))
 		]
-		super().__init__(**kwargs)
 
-	def callback_for_font_items(self, *args):
-		self.ids.fontSpinner.text = args[0]
+		self.font_menu = MDDropdownMenu(
+                    caller=self.screen_manager.screens[0].ids.fontSpinner,
+                    items=fonts,
+                    position="bottom",
+                    width_mult=2,
+                    selected_color=[0.85, 0.85, 0.85, 1],
+                    background_color=[0.55, 0.55, 0.55, 1]
+                )
+
+		self.font_menu.bind(on_release=self.callback_for_font_items)
+
+	def callback_for_font_items(self, instance_menu:MDDropdownMenu, instance_menu_item):
+		self.ids.fontSpinner.text = instance_menu_item.text
+		instance_menu.dismiss()
 
 	def pressed(self, instance, on_start_ = False, next_week = False):
 		'''
@@ -155,24 +180,60 @@ class Container(Screen):
 
 class Settings(Screen):
 
-	def __init__(self, DB, screen_manager, **args):
-		self.DB = DB
+	def __init__(self, parent, DB, screen_manager, **args):
+		self.app = parent
+		self.DB:dict = DB
 		self.screen_manager = screen_manager
-		self.courses = []
-		self.groups = []
-		# self.line = f"[size=13][s]\n{'  '*round(self.width/2)}\n[/s][/size]"
-
-		# содержимое скроллера институтов
-		insts_tuple = tuple(DB.keys())
-		self.insts = [
-			{
-			"viewclass": "MDMenuItem",
-			"text": insts_tuple[i],
-			"callback": lambda text: self.callback_for_items("insts", text)
-			} for i in range(len(insts_tuple))
-		]
 
 		super().__init__(**args)
+
+	def create_menus(self):
+		insts_tuple = tuple(self.DB.keys())
+
+		insts = [
+                    {
+                        "viewclass": "MDMenuItem",
+                        "text": insts_tuple[i],
+                  		"height": "40dp",
+                  		"top_pad": "10dp",
+                  		"bot_pad": "8dp",
+                    } for i in range(len(insts_tuple))
+                ]
+
+		th = ThemeManager()
+		
+		self.inst_menu = MDDropdownMenu(
+					caller=self.screen_manager.screens[1].ids.instSpinner,
+					items=insts,
+					position="bottom",
+               		width_mult=2,
+                    selected_color=[0.85,0.85,0.85,1],
+                    background_color=[0.55,0.55,0.55,1]
+		)
+		
+		self.course_menu = MDDropdownMenu(
+                    caller=self.screen_manager.screens[1].ids.courseSpinner,
+					position="bottom",
+               		width_mult=3,
+                    selected_color=[0.85,0.85,0.85,1],
+                    background_color=[0.55,0.55,0.55,1]
+		)
+		self.group_menu = MDDropdownMenu(
+                    caller=self.screen_manager.screens[1].ids.groupSpinner,
+                    width_mult=3,
+					position="bottom",
+                    selected_color=[0.85,0.85,0.85,1],
+                    background_color=[0.55,0.55,0.55,1]
+		)
+
+		self.inst_menu.set_menu_properties()
+		self.course_menu.set_menu_properties()
+		self.group_menu.set_menu_properties()
+
+		self.inst_menu.bind(on_release=self.callback_for_items)
+		self.course_menu.bind(on_release=self.callback_for_items)
+		self.group_menu.bind(on_release=self.callback_for_items)
+
 
 	def updatorSwitcherActive(self, active):
 		'''
@@ -188,17 +249,19 @@ class Settings(Screen):
 
 		config.write("nextWeekOnHolyday", active)
 
-	def callback_for_items(self, obj, text):
+	def callback_for_items(self, instance_menu:MDDropdownMenu, instance_menu_item):
 		'''
 		когда происходит выбор элемента MDMenuItem скроллера NewMenu, текст NewButton, владеющего NewMenu меняется на text
 		'''
 
-		if obj == "insts":
-			self.ids.instSpinner.text = text
-		elif obj == "courses":
-			self.ids.courseSpinner.text = text
-		elif obj == "groups":
-			self.ids.groupSpinner.text = text
+		if instance_menu.caller == self.screen_manager.screens[1].ids.instSpinner:
+			self.screen_manager.screens[1].ids.instSpinner.text = instance_menu_item.text
+		elif instance_menu.caller == self.screen_manager.screens[1].ids.courseSpinner:
+			self.screen_manager.screens[1].ids.courseSpinner.text = instance_menu_item.text
+		elif instance_menu.caller == self.screen_manager.screens[1].ids.groupSpinner:
+			self.screen_manager.screens[1].ids.groupSpinner.text = instance_menu_item.text
+
+		instance_menu.dismiss()
 
 	def gotoPressed(self, next_week = False, current_week = False):
 		'''
@@ -226,26 +289,24 @@ class Settings(Screen):
 
 	def instChanged(self):
 		'''
-		реакция на смену института
+		реакция на смену текста скроллера института
 		'''
 		currentInst = config.read("currentInst")
-
-		# получаем выбранный институт и заполняем заполняем скроллер курсов этого института
-		DB_courses = self.DB[self.ids.instSpinner.text]
-		courses = []
 
 		if currentInst == "":
 			config.write("currentInst", self.ids.instSpinner.text)
 
-		courses = [k for k, v in DB_courses.items()]
+		courses = tuple(self.DB[self.ids.instSpinner.text].keys())
 
-		self.courses = [
-			{
-			"viewclass": "MDMenuItem",
-			"text": courses[i],
-			"callback": lambda text: self.callback_for_items("courses", text)
-			} for i in range(len(courses))
-		]
+		self.course_menu.items = [
+                    {
+                        "viewclass": "MDMenuItem",
+                        "text": courses[i],
+				        "height": "40dp",
+						"top_pad": "10dp",
+						"bot_pad": "8dp"
+                    } for i in range(len(courses))
+                ]
 
 		if self.ids.courseSpinner.text != courses[0]:
 			self.ids.courseSpinner.text = courses[0]
@@ -255,7 +316,7 @@ class Settings(Screen):
 
 	def courseChanged(self):
 		'''
-		реакция на смену курса
+		реакция на смену текста скроллера курса
 		'''
 		currentCourse = config.read("currentCourse")
 
@@ -263,16 +324,17 @@ class Settings(Screen):
 			config.write("currentCourse", self.ids.courseSpinner.text)
 
 		# заполнение скроллера групп
-		DB_courses = self.DB[self.ids.instSpinner.text]
 		currentGroup = config.read("currentGroup")
 
-		groups = DB_courses[self.ids.courseSpinner.text]
+		groups = self.DB[self.ids.instSpinner.text][self.ids.courseSpinner.text]
 
-		self.groups = [
+		self.group_menu.items = [
 			{
 			"viewclass": "MDMenuItem",
 			"text": groups[i],
-			"callback": lambda text: self.callback_for_items("groups", text)
+			"height": "40dp",
+			"top_pad": "10dp",
+			"bot_pad": "8dp"
 			} for i in range(len(groups))
 		]
 
@@ -286,8 +348,9 @@ class Settings(Screen):
 
 	def groupChanged(self):
 		'''
-		реакция на смену группы
+		реакция на смену текста скроллера группы
 		'''
+
 		tableGroup = config.read("groupJson")
 
 		if len(tableGroup):

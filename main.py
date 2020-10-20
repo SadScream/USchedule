@@ -8,7 +8,7 @@ from kivy.uix.screenmanager import ScreenManager, NoTransition
 # from kivymd.color_definitions import colors
 
 from tools_.JsonHandler import JsonHandler
-from tools_.newMenu import NewMenu
+from kivymd.uix.menu import MDDropdownMenu
 from tools_.kivy_cfg.Config import *
 from tools_.newButton import NewButton
 from tools_.screens import Container, Settings
@@ -82,7 +82,7 @@ KV = """
 				id: fontSpinner
 				on_text: root.fontChanged()
 				on_press: Animation().stop_all(self)
-				on_release: app.openMenu(self, root.fonts)
+				on_release: app.openMenu(self)
 
 			NewButton:
 				id: reloadBtn
@@ -156,19 +156,19 @@ KV = """
 			id: instSpinner
 			on_text: root.instChanged()
 			on_press: Animation().stop_all(self)
-			on_release: app.openMenu(self, root.insts)
+			on_release: app.openMenu(self)
 
 		NewButton:
 			id: courseSpinner
 			on_text: root.courseChanged()
 			on_press: Animation().stop_all(self)
-			on_release: app.openMenu(self, root.courses)
+			on_release: app.openMenu(self)
 
 		NewButton:
 			id: groupSpinner
 			on_text: root.groupChanged()
 			on_press: Animation().stop_all(self)
-			on_release: app.openMenu(self, root.groups)
+			on_release: app.openMenu(self)
 
 
 		LineLayout:
@@ -200,8 +200,8 @@ KV = """
 		GridLayout:
 			rows: 1
 			columns: 2
-			spacing: '3dp'
-			size_hint_y: 0.05
+			spacing: '0dp'
+			size_hint_y: 0.08
 
 			MDLabel:
 				id: updatorSwitcherButton
@@ -221,8 +221,8 @@ KV = """
 		GridLayout:
 			rows: 1
 			columns: 2
-			spacing: '3dp'
-			size_hint_y: 0.06
+			spacing: '0dp'
+			size_hint_y: 0.08
 
 			MDLabel:
 				id: nextWeekOnHolyday
@@ -242,29 +242,32 @@ KV = """
 
 class ScheduleApp(MDApp):
 
-	def __init__(self, **kwargs):
-		# self.theme_cls.theme_style = "Light"
-
-		self.theme_cls.primary_palette = "Gray"
-
-		'''
-		'Red' 'Pink' 'Purple' 'DeepPurple' 'Indigo' 'Blue' 
-		'LightBlue' 'Cyan' 'Teal' 'Green' 'LightGreen' 'Lime' 
-		'Yellow' 'Amber' 'Orange' 'DeepOrange' 'Brown' 'Gray' 'BlueGray'
-		'''
-
-		super().__init__(**kwargs)
-
-	def openMenu(self, target_widget, items):
+	def openMenu(self, target_widget):
 		# костыль для открытия оптимизорованной дропдаун менюшки
 
-		widget = NewMenu(items=items, width_mult=3)
-		widget.open(target_widget)
+
+		if target_widget == screen_manager.screens[1].ids.instSpinner:
+			target = screen_manager.screens[1].inst_menu
+		elif target_widget == screen_manager.screens[1].ids.courseSpinner:
+			target = screen_manager.screens[1].course_menu
+		elif target_widget == screen_manager.screens[1].ids.groupSpinner:
+			target = screen_manager.screens[1].group_menu
+		elif target_widget == screen_manager.screens[0].ids.fontSpinner:
+			target = screen_manager.screens[0].font_menu
+		
+		target.open()
+		target.target_width += target.target_width/2
 
 	def build(self):
+		self.theme_cls.primary_palette = "Gray"
+
 		Builder.load_string(KV)
-		screen_manager.add_widget(Container(screen_manager=screen_manager))
-		screen_manager.add_widget(Settings(DB=DB, screen_manager=screen_manager))
+
+		screen_manager.add_widget(Container(self, screen_manager=screen_manager))
+		screen_manager.add_widget(Settings(self, DB=DB, screen_manager=screen_manager))
+
+		screen_manager.screens[0].create_menus()
+		screen_manager.screens[1].create_menus()
 
 		container = screen_manager.screens[0]
 		settings = screen_manager.screens[1]
