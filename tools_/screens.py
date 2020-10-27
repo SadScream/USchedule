@@ -110,10 +110,20 @@ class Container(Screen):
 		if not table:
 			# instance.text = "Обновить"
 
-			Snack("Ошибка соединения", 3).show()
+			Snack("Ошибка соединения", 3).open()
 			self.turn(1)
 			self.ids.scrollArea.do_scroll = True
 			instance.text = last_state_text
+
+			if (self.screen_manager.screens[1].ids.nextWeekButton.disabled and 
+				not self.screen_manager.screens[1].ids.currentWeek.disabled): # если была нажата кнопка "следующая неделя"
+				self.screen_manager.screens[1].ids.nextWeekButton.disabled = False
+				self.screen_manager.screens[1].ids.currentWeek.disabled = True
+
+			elif (not self.screen_manager.screens[1].ids.nextWeekButton.disabled and 
+					self.screen_manager.screens[1].ids.currentWeek.disabled): # если была нажата кнопка "текущая неделя"
+				self.screen_manager.screens[1].ids.nextWeekButton.disabled = True
+				self.screen_manager.screens[1].ids.currentWeek.disabled = False
 			
 			return False
 
